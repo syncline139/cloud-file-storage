@@ -1,5 +1,6 @@
-package com.example.project.models;
+package com.example.project.entity;
 
+import com.example.project.utils.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -9,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.modelmapper.internal.bytebuddy.implementation.bind.annotation.Empty;
 
 import java.time.LocalDateTime;
 
@@ -23,7 +25,7 @@ public class User {
     private static final int LOGIN_MIN_LENGTH = 5;
     private static final int LOGIN_MAX_LENGTH = 30;
     private static final int PASSWORD_MIN_LENGTH = 6;
-    private static final int PASSWORD_MAX_LENGTH = 50;
+    private static final int PASSWORD_MAX_LENGTH = 60;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,14 +39,11 @@ public class User {
     private String login;
 
     @NotEmpty(message = "Пароль не должен быть пустым")
-    @Size(min = PASSWORD_MIN_LENGTH,max = PASSWORD_MAX_LENGTH,message = "Пароля должен быть в диапазоне от 5 до 50 символом")
     @Column(name = "password_hash")
     private String password;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @NotEmpty(message = "У юзера должна быть роль")
+    @NotNull(message = "У юзера должна быть роль")
+    @Enumerated(value = EnumType.STRING)
     @Column(name = "role")
-    private String role;
+    private Role role;
 }
