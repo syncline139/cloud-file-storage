@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    volumes:
+      - ~/.m2:/root/.m2
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
