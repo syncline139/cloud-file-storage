@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,7 +32,7 @@ public class AuthController {
     private final RegistrationService registrationService;
 
     @PostMapping("/sign-up")
-    public ResponseEntity<HttpStatus> registration(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult) {
+    public ResponseEntity<?> registration(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult) {
 
         userValidation.validate(userDTO, bindingResult);
 
@@ -48,7 +49,9 @@ public class AuthController {
 
         registrationService.save(convertToUser(userDTO));
 
-        return ResponseEntity.ok(HttpStatus.CREATED); // 201
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(Map.of("login", userDTO.getLogin())); // 201
     }
 
     // Пришедние данные с JSON которые лежат в DTO преобразуем в User
@@ -59,7 +62,8 @@ public class AuthController {
     @ExceptionHandler
     public ResponseEntity<UserErrorResponse> handleException(UserNotCreatedException e) {
         UserErrorResponse response = new UserErrorResponse(
-                e.getMessage()
+                e.getMessage(),
+                System.currentTimeMillis()
         );
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST); // 400
