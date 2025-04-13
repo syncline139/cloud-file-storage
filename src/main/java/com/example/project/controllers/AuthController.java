@@ -33,8 +33,8 @@ public class AuthController {
     @PostMapping("/sign-up")
     public ResponseEntity<HttpStatus> registration(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult) {
 
-        userValidation.validate(convertToUser(userDTO), bindingResult);
-        System.out.println("UserDTO: login=" + userDTO.getLogin() + ", password=" + userDTO.getPassword());
+        userValidation.validate(userDTO, bindingResult);
+
         if (bindingResult.hasErrors()) {
             StringBuilder errorMsg = new StringBuilder();
             List<FieldError> errors = bindingResult.getFieldErrors();
@@ -61,6 +61,7 @@ public class AuthController {
         UserErrorResponse response = new UserErrorResponse(
                 e.getMessage()
         );
+
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST); // 400
     }
 

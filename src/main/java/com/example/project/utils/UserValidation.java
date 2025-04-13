@@ -1,6 +1,8 @@
 package com.example.project.utils;
 
+import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
+import com.example.project.exceptions.UserNotFoundException;
 import com.example.project.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,15 +18,15 @@ public class UserValidation implements Validator {
 
     @Override
     public boolean supports(Class<?> clazz) {
-        return User.class.equals(clazz);
+        return UserDTO.class.equals(clazz);
     }
 
     @Override
     public void validate(Object target, Errors errors) {
-        User user = (User) target;
+        UserDTO userDTO = (UserDTO) target;
 
-        if (userRepository.findByLogin(user.getLogin()).isPresent()) {
-            throw new UsernameNotFoundException("Пользотваль с логином '" + user.getLogin() + "' уже зарегистрирован");
+        if (userRepository.findByLogin(userDTO.getLogin()).isPresent()) {
+            errors.rejectValue("login","", "Пользователь с логином '" + userDTO.getLogin() + "' уже зарегистрирован");
         }
     }
 }

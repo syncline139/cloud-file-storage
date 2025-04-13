@@ -39,6 +39,7 @@ public class User {
     private String login;
 
     @NotEmpty(message = "Пароль не должен быть пустым")
+    @Size(min = PASSWORD_MIN_LENGTH,max = PASSWORD_MAX_LENGTH,message = "Пароля должен быть в диапазоне от 6 до 50 символом")
     @Column(name = "password_hash")
     private String password;
 
