@@ -2,6 +2,7 @@ package com.example.project.utils;
 
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
+import com.example.project.exceptions.LoginConflictException;
 import com.example.project.exceptions.UserNotFoundException;
 import com.example.project.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,21 +13,14 @@ import org.springframework.validation.Validator;
 
 @RequiredArgsConstructor
 @Component
-public class UserValidation implements Validator {
+public class UserValidation {
 
     private final UserRepository userRepository;
 
-    @Override
-    public boolean supports(Class<?> clazz) {
-        return UserDTO.class.equals(clazz);
-    }
-
-    @Override
-    public void validate(Object target, Errors errors) {
-        UserDTO userDTO = (UserDTO) target;
+    public void validate(UserDTO userDTO) {
 
         if (userRepository.findByLogin(userDTO.getLogin()).isPresent()) {
-            errors.rejectValue("login","", "Пользователь с логином '" + userDTO.getLogin() + "' уже зарегистрирован");
+            throw new LoginConflictException("Пользотваль с логином '" + userDTO.getLogin() + "' уже занят");
         }
     }
 }
