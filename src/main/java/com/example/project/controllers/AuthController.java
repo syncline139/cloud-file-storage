@@ -27,7 +27,6 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final ModelMapper modelMapper;
     private final UserValidation userValidation;
     private final RegistrationService registrationService;
 
@@ -47,27 +46,13 @@ public class AuthController {
             throw new UserNotCreatedException(errorMsg.toString());
         }
 
-        registrationService.save(convertToUser(userDTO));
+        registrationService.save(userDTO);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(Map.of("login", userDTO.getLogin())); // 201
     }
 
-    // Пришедние данные с JSON которые лежат в DTO преобразуем в User
-    public User convertToUser(UserDTO userDTO) {
-        return modelMapper.map(userDTO, User.class);
-    }
-
-    @ExceptionHandler
-    public ResponseEntity<UserErrorResponse> handleException(UserNotCreatedException e) {
-        UserErrorResponse response = new UserErrorResponse(
-                e.getMessage(),
-                System.currentTimeMillis()
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST); // 400
-    }
 
 
 }
