@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ControllerAdvice(annotations = RestController.class)
 public class GlobalExceptionHandler {
 
+    // ошибки валидации (пример - слишком короткий login)
     @ExceptionHandler
     public ResponseEntity<UserErrorResponse> handleException(UserNotCreatedException e) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
@@ -28,6 +29,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, status); // 400
     }
 
+    // login занят
     @ExceptionHandler
     public ResponseEntity<UserErrorResponse> handleException(LoginConflictException e) {
         HttpStatus status = HttpStatus.CONFLICT;
@@ -41,6 +43,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, status); // 409
     }
 
+    // неизвестная ошибка
     @ExceptionHandler
     public ResponseEntity<UserErrorResponse> handleException(Exception e) {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
