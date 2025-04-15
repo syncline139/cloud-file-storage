@@ -81,5 +81,16 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(response, status); //401
     }
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<UserErrorResponse> handleException(AuthenticationCredentialsNotFoundException e) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+
+        UserErrorResponse response = new UserErrorResponse(
+                e.getMessage(),
+                status.value(),
+                System.currentTimeMillis()
+        );
+        return new ResponseEntity<>(response, status); //401
+    }
 
 }
