@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: cloud-file-storage
+  jpa:
+    properties:
+      hibernate:
+        show_sql:
+
+
+server:
+  error:
+    include-message: always

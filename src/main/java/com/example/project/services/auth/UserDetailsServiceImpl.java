@@ -2,7 +2,7 @@ package com.example.project.services.auth;
 
 
 import com.example.project.entity.User;
-import com.example.project.exceptions.LoginConflictException;
+import com.example.project.exceptions.UniqueLoginException;
 import com.example.project.repositories.UserRepository;
 import com.example.project.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Optional<User> maybeUser = userRepository.findByLogin(login);
 
         if (maybeUser.isEmpty()) {
-            throw new LoginConflictException("Пользотваль с логином: " + login + " не найден");
+            throw new UniqueLoginException("Пользотваль с логином: " + login + " не найден");
         }
 
         return new UserDetailsImpl(maybeUser.get());

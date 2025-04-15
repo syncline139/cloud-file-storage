@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
 
-
 /**
  * Класс отвечает за поимку всех исключений помеченными @RestController
  * он их обрабатывает и отпрвляет пользотвалю JSON c ошибкой
@@ -17,7 +16,7 @@ public class GlobalExceptionHandler {
 
     // ошибки валидации (пример - слишком короткий login)
     @ExceptionHandler
-    public ResponseEntity<UserErrorResponse> handleException(UserNotCreatedException e) {
+    public ResponseEntity<UserErrorResponse> handleException(UserNotValidationException e) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
 
         UserErrorResponse response = new UserErrorResponse(
@@ -31,7 +30,7 @@ public class GlobalExceptionHandler {
 
     // login занят
     @ExceptionHandler
-    public ResponseEntity<UserErrorResponse> handleException(LoginConflictException e) {
+    public ResponseEntity<UserErrorResponse> handleException(UniqueLoginException e) {
         HttpStatus status = HttpStatus.CONFLICT;
 
         UserErrorResponse response = new UserErrorResponse(
@@ -56,4 +55,18 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(response, status); // 500
     }
+
+    // пользователь не авторизован
+    @ExceptionHandler
+    public ResponseEntity<UserErrorResponse> handleException(LoginExistenceException e) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+
+        UserErrorResponse response = new UserErrorResponse(
+                e.getMessage(),
+                status.value(),
+                System.currentTimeMillis()
+        );
+        return new ResponseEntity<>(response, status);
+    }
+
 }
