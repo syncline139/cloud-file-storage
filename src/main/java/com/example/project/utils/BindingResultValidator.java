@@ -1,4 +1,4 @@
-package com.example.project.services.auth;
+package com.example.project.utils;
 
 import com.example.project.exceptions.UserNotValidationException;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +10,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Service
-public class ValidationService {
+public class BindingResultValidator {
 
     public void checkForValidationErrors(BindingResult bindingResult) {
 

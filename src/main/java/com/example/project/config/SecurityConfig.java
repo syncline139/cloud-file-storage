@@ -32,6 +32,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/sign-up","api/auth/sign-in").permitAll()
                         .anyRequest().authenticated()
+                )
+                .authenticationProvider(authenticationProvider()
                 );
 
         return http.build();

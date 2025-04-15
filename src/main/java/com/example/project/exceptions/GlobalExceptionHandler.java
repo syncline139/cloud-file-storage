@@ -3,6 +3,7 @@ package com.example.project.exceptions;
 import com.example.project.dto.response.UserErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class GlobalExceptionHandler {
 
     // ошибки валидации (пример - слишком короткий login)
-    @ExceptionHandler
+    @ExceptionHandler(UserNotValidationException.class)
     public ResponseEntity<UserErrorResponse> handleException(UserNotValidationException e) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
 
@@ -29,7 +30,7 @@ public class GlobalExceptionHandler {
     }
 
     // login занят
-    @ExceptionHandler
+    @ExceptionHandler(UniqueLoginException.class)
     public ResponseEntity<UserErrorResponse> handleException(UniqueLoginException e) {
         HttpStatus status = HttpStatus.CONFLICT;
 
@@ -43,7 +44,7 @@ public class GlobalExceptionHandler {
     }
 
     // неизвестная ошибка
-    @ExceptionHandler
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<UserErrorResponse> handleException(Exception e) {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
 
@@ -57,7 +58,7 @@ public class GlobalExceptionHandler {
     }
 
     // пользователь не авторизован
-    @ExceptionHandler
+    @ExceptionHandler(LoginExistenceException.class)
     public ResponseEntity<UserErrorResponse> handleException(LoginExistenceException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
@@ -66,7 +67,19 @@ public class GlobalExceptionHandler {
                 status.value(),
                 System.currentTimeMillis()
         );
-        return new ResponseEntity<>(response, status);
+        return new ResponseEntity<>(response, status); //401
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<UserErrorResponse> handleException(BadCredentialsException e) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+
+        UserErrorResponse response = new UserErrorResponse(
+                 "Неверный логин или пароль",
+                status.value(),
+                System.currentTimeMillis()
+        );
+        return new ResponseEntity<>(response, status); //401
     }
 
 }

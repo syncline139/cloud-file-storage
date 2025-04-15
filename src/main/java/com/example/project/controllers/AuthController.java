@@ -1,8 +1,10 @@
 package com.example.project.controllers;
 
 import com.example.project.dto.request.UserDTO;
+import com.example.project.services.auth.LoginService;
 import com.example.project.services.auth.RegistrationService;
-import com.example.project.services.auth.ValidationService;
+import com.example.project.utils.BindingResultValidator;
+import com.example.project.utils.LoginExistenceValidator;
 import com.example.project.utils.UniqueLoginValidation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -24,35 +26,37 @@ public class AuthController {
 
     private final UniqueLoginValidation uniqueLoginValidation;
     private final RegistrationService registrationService;
-    private final ValidationService validationService;
+    private final BindingResultValidator bindingResultValidator;
+    private final LoginExistenceValidator loginExistenceValidator;
+    private final LoginService loginService;
 
     @PostMapping("/sign-up")
     public ResponseEntity<?> registration(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
         uniqueLoginValidation.validate(userDTO);
 
-        validationService.checkForValidationErrors(bindingResult);
+        bindingResultValidator.checkForValidationErrors(bindingResult);
 
         registrationService.save(userDTO, request);
 
             return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(Map.of("login", userDTO.getLogin())); // 201
+                .status(HttpStatus.CREATED) // 201
+                .body(Map.of("login", userDTO.getLogin()));
     }
 
 
-//    @PostMapping("/sign-in")
-//    public ResponseEntity<?> authentication(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult) {
-//
-//        loginExistenceValidator.validation(userDTO);
-//
-//        validationService.checkForValidationErrors(bindingResult);
-//
-//
-//
-//
-//    }
+    @PostMapping("/sign-in")
+    public ResponseEntity<?> authentication(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
+        loginExistenceValidator.validation(userDTO);
 
+        bindingResultValidator.checkForValidationErrors(bindingResult);
+
+        loginService.authentication(userDTO,request);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)  // 200
+                .body(Map.of("login", userDTO.getLogin()));
+    }
 
 }

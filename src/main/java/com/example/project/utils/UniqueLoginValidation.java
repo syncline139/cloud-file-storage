@@ -15,7 +15,7 @@ public class UniqueLoginValidation {
     public void validate(UserDTO userDTO) {
 
         if (userRepository.findByLogin(userDTO.getLogin()).isPresent()) {
-            throw new UniqueLoginException("Пользотваль с логином '" + userDTO.getLogin() + "' уже занят");
+            throw new UniqueLoginException("Пользотваль с логином '" + userDTO.getLogin() + "' уже зарегистрирован");
         }
     }
 }

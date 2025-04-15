@@ -17,10 +17,10 @@ public class LoginExistenceValidator {
 
     public void validation(UserDTO userDTO) {
 
-        Optional<User> login = userRepository.findByLogin(userDTO.getLogin());
+        Optional<User> user = userRepository.findByLogin(userDTO.getLogin());
 
-        if (login.isEmpty()) {
-            throw new LoginExistenceException("Пользотваля с логином  '" + userDTO.getLogin() + "' не существует");
+        if (user.isEmpty()) {
+            throw new LoginExistenceException("Неверный логин или пароль");
         }
     }
 }

@@ -45,7 +45,7 @@ public class RegistrationService {
 
     }
 
-    // Пришедние данные с JSON которые лежат в DTO преобразуем в User
+    // UserDTO --> User
     public User convertToUser(UserDTO userDTO) {
         return modelMapper.map(userDTO, User.class);
     }
