@@ -1,8 +1,8 @@
 package com.example.project.controllers;
 
-import com.example.project.annotations.UserSignInDoc;
-import com.example.project.annotations.UserSignOutDoc;
-import com.example.project.annotations.UserSignUpDoc;
+import com.example.project.annotations.auth.UserSignInDoc;
+import com.example.project.annotations.auth.UserSignOutDoc;
+import com.example.project.annotations.auth.UserSignUpDoc;
 import com.example.project.dto.request.UserDTO;
 import com.example.project.services.auth.SignInService;
 import com.example.project.services.auth.LogoutService;

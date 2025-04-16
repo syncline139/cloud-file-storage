@@ -1,4 +1,4 @@
-package com.example.project.annotations;
+package com.example.project.annotations.auth;
 
 
 import com.example.project.dto.response.UserErrorResponse;

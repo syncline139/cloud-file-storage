@@ -1,5 +1,6 @@
 package com.example.project.controllers;
 
+import com.example.project.annotations.profile.UserInfoDoc;
 import com.example.project.services.profile.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ public class UserController {
 
     private final UserService userService;
 
+    @UserInfoDoc
     @GetMapping("/me")
     public ResponseEntity<?> userLoginInfo() {
 

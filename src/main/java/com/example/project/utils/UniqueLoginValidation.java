@@ -12,6 +12,14 @@ public class UniqueLoginValidation {
 
     private final UserRepository userRepository;
 
+    /**
+     * Кастомная валидация
+     * <p>
+     *   Ищем логин из {@link UserDTO} если найден значит кидается {@link UniqueLoginException},
+     *   значит логин уже занят и новый пользотваль не сможет под ним зарегистироватся
+     * </p>
+     * @param userDTO объект с данными пользователя (логин и пароль)
+     */
     public void validate(UserDTO userDTO) {
 
         if (userRepository.findByLogin(userDTO.getLogin()).isPresent()) {

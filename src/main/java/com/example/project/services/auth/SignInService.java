@@ -18,6 +18,18 @@ public class SignInService {
 
     private final AuthenticationManager authenticationManager;
 
+    /**
+     * Выполняет аутентификацию пользователя.
+     * <p>
+     * Создаёт {@link UsernamePasswordAuthenticationToken} на основе данных, полученных от клиента,
+     * проходит процесс аутентификации через {@link AuthenticationManager}, устанавливает
+     * {@link SecurityContext}, а также инициирует HTTP-сессию с сохранённым контекстом безопасности.
+     * </p>
+     *
+     * @param userDTO объект с данными пользователя (логин и пароль)
+     * @param request HTTP-запрос, из которого берётся или создаётся сессия
+     */
+
     public void authentication(UserDTO userDTO, HttpServletRequest request) {
         Authentication authentication = new UsernamePasswordAuthenticationToken(userDTO.getLogin(), userDTO.getPassword());
         Authentication authenticationUser = authenticationManager.authenticate(authentication);
@@ -29,7 +41,4 @@ public class SignInService {
         HttpSession session = request.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
     }
-
-
-
 }

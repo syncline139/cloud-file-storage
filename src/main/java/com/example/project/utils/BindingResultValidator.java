@@ -12,6 +12,13 @@ import java.util.List;
 @Service
 public class BindingResultValidator {
 
+    /**
+     * Валидация
+     * <p>
+     *     В слачаее не пройденной валидации собирает ошибку и кидает {@link UserNotValidationException} с готовым сообщением
+     * </p>
+     * @param bindingResult получаем ошибки пришедшие с сущности
+     */
     public void checkForValidationErrors(BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {

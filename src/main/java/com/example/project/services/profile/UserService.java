@@ -12,6 +12,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserService {
 
+    /**
+     * Возвращает информацию об аутентифицированном пользователе.
+     *<p>
+     *     Извлекает текущий {@link Authentication} из {@link SecurityContextHolder},
+     *     проверяет что пользотваль авторизированный и возваращет его {@link UserDetails},
+     *     в случае отсутствия авторизации выбрасывает {@link AuthenticationCredentialsNotFoundException}.
+     *</p>
+     *
+     * @return данные авторизированного пользователя
+     */
     public UserDetails info() {
         Authentication auth =  SecurityContextHolder.getContext().getAuthentication();
 

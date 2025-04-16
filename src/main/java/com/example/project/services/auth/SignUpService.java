@@ -11,6 +11,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -27,9 +28,21 @@ public class SignUpService {
     private final ModelMapper modelMapper;
     private final AuthenticationManager authenticationManager;
 
+    /**
+     * Регистрирует нового пользователя и выполняет его аутентификацию.
+     * <p>
+     * Преобразует DTO в сущность, хеширует пароль с помощью {@link PasswordEncoder},
+     * устанавливает роль {@link Role#USER} и сохраняет пользователя в базу данных.
+     * После сохранения инициирует процесс аутентификации через {@link AuthenticationManager},
+     * устанавливает {@link SecurityContext} и создаёт HTTP-сессию с сохранённым контекстом безопасности.
+     * </p>
+     *
+     * @param userDTO объект с данными пользователя (логин и пароль)
+     * @param request HTTP-запрос, из которого берётся или создаётся сессия
+     */
     @Transactional
     public void save(UserDTO userDTO, HttpServletRequest request) {
-        User user = convertToUser(userDTO);
+      final User user = convertToUser(userDTO);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole(Role.USER);
         userRepository.save(user);
@@ -38,15 +51,16 @@ public class SignUpService {
         Authentication authenticationUser = authenticationManager.authenticate(authentication);
 
         HttpSession session = request.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                SecurityContextHolder.getContext());
 
         SecurityContextHolder.getContext().setAuthentication(authenticationUser);
+
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                SecurityContextHolder.getContext());
 
     }
 
     // UserDTO --> User
-    public User convertToUser(UserDTO userDTO) {
+    private User convertToUser(UserDTO userDTO) {
         return modelMapper.map(userDTO, User.class);
     }
 

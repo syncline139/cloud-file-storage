@@ -15,9 +15,17 @@ public class LoginExistenceValidator {
     
     private final UserRepository userRepository;
 
+    /**
+     * Кастомная валидация
+     * <p>
+     *   Ищем логин из {@link UserDTO} если не найден значит кидается {@link LoginExistenceException},
+     *   значит такого пользователе нету в БД и нельзя аутентифицироватся под данным логином.
+     * </p>
+     * @param userDTO объект с данными пользователя (логин и пароль)
+     */
     public void validation(UserDTO userDTO) {
 
-        Optional<User> user = userRepository.findByLogin(userDTO.getLogin());
+      final Optional<User> user = userRepository.findByLogin(userDTO.getLogin());
 
         if (user.isEmpty()) {
             throw new LoginExistenceException("Неверный логин или пароль");

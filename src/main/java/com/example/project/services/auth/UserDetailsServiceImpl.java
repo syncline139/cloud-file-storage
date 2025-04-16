@@ -21,7 +21,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetailsImpl loadUserByUsername(String login) throws UsernameNotFoundException {
 
-        Optional<User> maybeUser = userRepository.findByLogin(login);
+      final  Optional<User> maybeUser = userRepository.findByLogin(login);
 
         if (maybeUser.isEmpty()) {
             throw new UniqueLoginException("Пользотваль с логином: " + login + " не найден");

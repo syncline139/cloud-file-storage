@@ -70,6 +70,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, status); //401
     }
 
+    // Неверные данные при аутентификации
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<UserErrorResponse> handleException(BadCredentialsException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
@@ -81,6 +82,8 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(response, status); //401
     }
+
+    //Пользователь не авторизирован
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
     public ResponseEntity<UserErrorResponse> handleException(AuthenticationCredentialsNotFoundException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
