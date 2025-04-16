@@ -2,14 +2,18 @@ package com.example.project.services.profile;
 
 import com.example.project.exceptions.AuthenticationCredentialsNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserService {
 
     /**
@@ -23,12 +27,20 @@ public class UserService {
      * @return данные авторизированного пользователя
      */
     public UserDetails info() {
-        Authentication auth =  SecurityContextHolder.getContext().getAuthentication();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        log.info("Попытка получить информацию о текущем пользователе");
 
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            log.warn("Пользователь не авторизован");
             throw new AuthenticationCredentialsNotFoundException();
         }
 
-       return  (UserDetails) auth.getPrincipal();
+        UserDetails userDetails = (UserDetails) auth.getPrincipal();
+        log.info("Пользователь с логином '{}' авторизован", userDetails.getUsername());
+
+        return userDetails;
     }
+
 }

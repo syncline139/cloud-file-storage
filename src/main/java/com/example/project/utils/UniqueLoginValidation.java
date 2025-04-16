@@ -4,8 +4,10 @@ import com.example.project.dto.request.UserDTO;
 import com.example.project.exceptions.UniqueLoginException;
 import com.example.project.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @RequiredArgsConstructor
 @Component
 public class UniqueLoginValidation {
@@ -23,7 +25,11 @@ public class UniqueLoginValidation {
     public void validate(UserDTO userDTO) {
 
         if (userRepository.findByLogin(userDTO.getLogin()).isPresent()) {
-            throw new UniqueLoginException("Пользотваль с логином '" + userDTO.getLogin() + "' уже зарегистрирован");
+            log.warn("Логин '{}' уже занят", userDTO.getLogin());
+            throw new UniqueLoginException("Пользователь с логином '" + userDTO.getLogin() + "' уже зарегистрирован");
         }
+
+        log.info("Логин '{}' доступен для регистрации", userDTO.getLogin());
     }
+
 }

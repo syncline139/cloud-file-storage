@@ -2,12 +2,14 @@ package com.example.project.utils;
 
 import com.example.project.exceptions.UserNotValidationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 
 import java.util.List;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class BindingResultValidator {
@@ -29,8 +31,10 @@ public class BindingResultValidator {
                         .append(error.getDefaultMessage())
                         .append(";");
             }
+            log.warn("Запрос от пользователя не прошел валидацию: {}", errorMsg);
             throw new UserNotValidationException(errorMsg.toString());
         }
+        log.info("Запрос от пользователя прошел валидацию");
 
     }
 }
