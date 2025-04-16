@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class LoginService {
+public class SignInService {
 
     private final AuthenticationManager authenticationManager;
 

@@ -1,9 +1,12 @@
 package com.example.project.controllers;
 
+import com.example.project.annotations.UserSignInDoc;
+import com.example.project.annotations.UserSignOutDoc;
+import com.example.project.annotations.UserSignUpDoc;
 import com.example.project.dto.request.UserDTO;
-import com.example.project.services.auth.LoginService;
+import com.example.project.services.auth.SignInService;
 import com.example.project.services.auth.LogoutService;
-import com.example.project.services.auth.RegistrationService;
+import com.example.project.services.auth.SignUpService;
 import com.example.project.utils.BindingResultValidator;
 import com.example.project.utils.LoginExistenceValidator;
 import com.example.project.utils.UniqueLoginValidation;
@@ -26,20 +29,21 @@ import java.util.Map;
 public class AuthController {
 
     private final UniqueLoginValidation uniqueLoginValidation;
-    private final RegistrationService registrationService;
+    private final SignUpService signUpService;
     private final BindingResultValidator bindingResultValidator;
     private final LoginExistenceValidator loginExistenceValidator;
-    private final LoginService loginService;
+    private final SignInService signInService;
     private final LogoutService logoutService;
 
+    @UserSignUpDoc
     @PostMapping("/sign-up")
-    public ResponseEntity<?> registration(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
+    public ResponseEntity<?> signUp(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
         uniqueLoginValidation.validate(userDTO);
 
         bindingResultValidator.checkForValidationErrors(bindingResult);
 
-        registrationService.save(userDTO, request);
+        signUpService.save(userDTO, request);
 
             return ResponseEntity
                 .status(HttpStatus.CREATED) // 201
@@ -47,26 +51,28 @@ public class AuthController {
     }
 
 
+    @UserSignInDoc
     @PostMapping("/sign-in")
-    public ResponseEntity<?> authentication(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
+    public ResponseEntity<?> signIn(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
         loginExistenceValidator.validation(userDTO);
 
         bindingResultValidator.checkForValidationErrors(bindingResult);
 
-        loginService.authentication(userDTO,request);
+        signInService.authentication(userDTO,request);
 
         return ResponseEntity
                 .status(HttpStatus.OK)  // 200
                 .body(Map.of("login", userDTO.getLogin()));
     }
 
+    @UserSignOutDoc
     @PostMapping("/sign-out")
     public ResponseEntity<HttpStatus> logout(HttpServletRequest request) {
 
         logoutService.logout(request);
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
     }
 
 }
