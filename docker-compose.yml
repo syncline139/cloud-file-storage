@@ -1,5 +1,6 @@
 services:
   backend:
+    image: cloud-file-storage-backend:latest
     build:
       context: .
       dockerfile: Dockerfile

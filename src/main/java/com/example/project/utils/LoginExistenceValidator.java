@@ -29,13 +29,9 @@ public class LoginExistenceValidator {
 
       final Optional<User> user = userRepository.findByLogin(userDTO.getLogin());
 
-      log.info("Попытка найти пользователя по логину '{}'", userDTO.getLogin());
-
         if (user.isEmpty()) {
-            log.warn("Пользователь с логином '{}' не был найден",userDTO.getLogin());
             throw new LoginExistenceException("Неверный логин или пароль");
         }
 
-        log.info("Пользотваль с логином '{}' был найден", userDTO.getLogin());
     }
 }

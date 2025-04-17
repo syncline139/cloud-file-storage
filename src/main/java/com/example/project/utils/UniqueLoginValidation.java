@@ -26,10 +26,10 @@ public class UniqueLoginValidation {
 
         if (userRepository.findByLogin(userDTO.getLogin()).isPresent()) {
             log.warn("Логин '{}' уже занят", userDTO.getLogin());
-            throw new UniqueLoginException("Пользователь с логином '" + userDTO.getLogin() + "' уже зарегистрирован");
+            throw new UniqueLoginException(String.format("Пользователь с логином '%s' уже зарегистрирован",userDTO.getLogin()));
         }
 
-        log.info("Логин '{}' доступен для регистрации", userDTO.getLogin());
+        log.info("Логин доступен для регистрации");
     }
 
 }

@@ -40,6 +40,7 @@ public class UserService {
         UserDetails userDetails = (UserDetails) auth.getPrincipal();
         log.info("Пользователь с логином '{}' авторизован", userDetails.getUsername());
 
+        log.info("Пользотваль получил запрашиваемые данные");
         return userDetails;
     }
 

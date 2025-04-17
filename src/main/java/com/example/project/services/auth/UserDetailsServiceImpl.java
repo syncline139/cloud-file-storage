@@ -32,7 +32,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         if (maybeUser.isEmpty()) {
             log.warn("Не удалось найти пользователя с логином '{}' ", login);
-            throw new UniqueLoginException("Пользотваль с логином: " + login + " не найден");
+            throw new UniqueLoginException(String.format("Пользотваль с логином: '%s' не найден", login));
         }
         log.info("Пользователя с логином '{}' найден",login);
         return new UserDetailsImpl(maybeUser.get());
