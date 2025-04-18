@@ -1,10 +1,9 @@
-package com.example.project.controllers;
+package com.example.project.auth;
 
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
 import com.example.project.repositories.UserRepository;
-import com.example.project.services.auth.SignUpService;
-import com.example.project.test.AbstractIntegrationTest;
+import com.example.project.test.AbstractTestContainersConnect;
 import com.example.project.utils.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @Tag("Sign-up")
-public class SignUpControllerIT extends AbstractIntegrationTest {
+public class AuthSignUpIT extends AbstractTestContainersConnect {
 
     @Autowired
     private MockMvc mockMvc;
@@ -79,9 +78,8 @@ public class SignUpControllerIT extends AbstractIntegrationTest {
         assertThat(savedUser.get().getRole()).isEqualTo(Role.USER);
         assertThat(passwordEncoder.matches(userDTO.getPassword(), savedUser.get().getPassword())).isTrue();
 
-        SecurityContext securityContext = (SecurityContext) result.getRequest()
-                .getSession()
-                .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = securityContext(result);
+
         assertThat(securityContext).isNotNull();
         assertThat(securityContext.getAuthentication().getName()).isEqualTo(userDTO.getLogin());
     }
@@ -101,9 +99,7 @@ public class SignUpControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) result.getRequest()
-                .getSession()
-                .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = securityContext(result);
         assertThat(securityContext).isNull();
     }
 
@@ -121,9 +117,7 @@ public class SignUpControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) result.getRequest()
-                .getSession()
-                .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = securityContext(result);
         assertThat(securityContext).isNull();
     }
 
@@ -141,9 +135,7 @@ public class SignUpControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) result.getRequest()
-                .getSession()
-                .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = securityContext(result);
         assertThat(securityContext).isNull();
     }
 
@@ -161,9 +153,7 @@ public class SignUpControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) result.getRequest()
-                .getSession()
-                .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = securityContext(result);
         assertThat(securityContext).isNull();
     }
 
@@ -181,9 +171,7 @@ public class SignUpControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) result.getRequest()
-                .getSession()
-                .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = securityContext(result);
         assertThat(securityContext).isNull();
     }
 
@@ -201,9 +189,16 @@ public class SignUpControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) result.getRequest()
+        SecurityContext securityContext = securityContext(result);
+        assertThat(securityContext).isNull();
+    }
+
+    private SecurityContext securityContext(MvcResult result) {
+
+        return  (SecurityContext) result
+                .getRequest()
                 .getSession()
                 .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
-        assertThat(securityContext).isNull();
+
     }
 }

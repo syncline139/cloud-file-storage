@@ -1,4 +1,4 @@
-package com.example.project.controllers;
+package com.example.project.auth;
 
 import com.example.project.annotations.profile.UserInfoDoc;
 import com.example.project.services.profile.UserService;

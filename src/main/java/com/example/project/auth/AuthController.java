@@ -1,4 +1,4 @@
-package com.example.project.controllers;
+package com.example.project.auth;
 
 import com.example.project.annotations.auth.UserSignInDoc;
 import com.example.project.annotations.auth.UserSignOutDoc;
@@ -26,6 +26,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
+
 public class AuthController {
 
     private final UniqueLoginValidation uniqueLoginValidation;
@@ -39,9 +40,10 @@ public class AuthController {
     @PostMapping("/sign-up")
     public ResponseEntity<?> signUp(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
+        bindingResultValidator.checkForValidationErrors(bindingResult);
+
         uniqueLoginValidation.validate(userDTO);
 
-        bindingResultValidator.checkForValidationErrors(bindingResult);
 
         signUpService.save(userDTO, request);
 
@@ -55,9 +57,10 @@ public class AuthController {
     @PostMapping("/sign-in")
     public ResponseEntity<?> signIn(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
+        bindingResultValidator.checkForValidationErrors(bindingResult);
+
         loginExistenceValidator.validation(userDTO);
 
-        bindingResultValidator.checkForValidationErrors(bindingResult);
 
         signInService.authentication(userDTO,request);
 
