@@ -33,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @Testcontainers
 @AutoConfigureMockMvc
+@Tag("Auth")
 @Tag("Sign-In")
 public class AuthSignInIT extends AbstractTestContainersConnect {
 
