@@ -36,7 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @Tag("Auth")
 @Tag("logout")
 public class AuthLogoutIT extends AbstractTestContainersConnect {
@@ -89,9 +88,6 @@ public class AuthLogoutIT extends AbstractTestContainersConnect {
     @Test
     @Tag("logout")
     void shouldFailLogoutWhenUserIsNotAuthenticated() throws Exception {
-
-        UserDTO userDTO = new UserDTO("luntik", "qwerty");
-
         MvcResult result = mockMvc.perform(post("/api/auth/sign-out"))
                 .andExpect(jsonPath("$.message").value("Пользователь не авторизован"))
                 .andExpect(jsonPath("$.statusCode").value(401))

@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Transactional
-@Testcontainers
 @AutoConfigureMockMvc
 @Tag("Auth")
 @Tag("Sign-In")
@@ -48,11 +47,6 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
 
     @Autowired
     private UserRepository userRepository;
-
-    @BeforeEach
-    void setUp() {
-        userRepository.deleteAll();
-    }
 
     @AfterEach
     void tearDown() {

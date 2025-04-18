@@ -34,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @Tag("Auth")
 @Tag("Sign-up")
 public class AuthSignUpIT extends AbstractTestContainersConnect {
@@ -51,11 +50,6 @@ public class AuthSignUpIT extends AbstractTestContainersConnect {
     @Autowired
     private ObjectMapper objectMapper;
 
-
-    @BeforeEach
-    void setUp() {
-        userRepository.deleteAll();
-    }
 
     @AfterEach
     void tearDown() {
