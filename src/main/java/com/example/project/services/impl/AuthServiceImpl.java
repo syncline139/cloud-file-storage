@@ -3,7 +3,7 @@ package com.example.project.services.impl;
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
-import com.example.project.mappers.impl.UserMapperImpl;
+import com.example.project.mappers.UserMapper;
 import com.example.project.repositories.UserRepository;
 import com.example.project.services.AuthService;
 import com.example.project.utils.Role;
@@ -33,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
-    private final UserMapperImpl userMapper;
+    private final UserMapper userMapper;
 
 
     @Transactional

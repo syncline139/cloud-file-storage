@@ -5,9 +5,7 @@ import com.example.project.annotations.auth.UserSignOutDoc;
 import com.example.project.annotations.auth.UserSignUpDoc;
 import com.example.project.dto.request.UserDTO;
 import com.example.project.services.AuthService;
-import com.example.project.utils.BindingResultValidator;
-import com.example.project.utils.LoginExistenceValidator;
-import com.example.project.utils.UniqueLoginValidation;
+import com.example.project.validations.AuthValidation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,19 +25,17 @@ import java.util.Map;
 
 public class AuthController {
 
-    private final UniqueLoginValidation uniqueLoginValidation;
-    private final BindingResultValidator bindingResultValidator;
-    private final LoginExistenceValidator loginExistenceValidator;
     private final AuthService authService;
+    private final AuthValidation authValidation;
 
 
     @UserSignUpDoc
     @PostMapping("/sign-up")
     public ResponseEntity<?> signUp(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
-        bindingResultValidator.checkForValidationErrors(bindingResult);
+        authValidation.bindingResultErrors(bindingResult);
 
-        uniqueLoginValidation.validate(userDTO);
+        authValidation.uniqueLoginErrors(userDTO);
 
 
         authService.registerAndAuthenticateUser(userDTO, request);
@@ -54,9 +50,9 @@ public class AuthController {
     @PostMapping("/sign-in")
     public ResponseEntity<?> signIn(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
 
-        bindingResultValidator.checkForValidationErrors(bindingResult);
+        authValidation.bindingResultErrors(bindingResult);
 
-        loginExistenceValidator.validation(userDTO);
+        authValidation.loginExistenceErrors(userDTO);
 
 
         authService.authenticate(userDTO,request);
