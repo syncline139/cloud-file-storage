@@ -1,4 +1,4 @@
-package com.example.project.exceptions;
+package com.example.project.exceptions.auth;
 
 /**
  * Исключение выбрасывается если пользователь пытается залогинится под неверными данными

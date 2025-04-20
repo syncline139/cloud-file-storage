@@ -2,7 +2,7 @@ package com.example.project.utils;
 
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
-import com.example.project.exceptions.LoginExistenceException;
+import com.example.project.exceptions.auth.LoginExistenceException;
 import com.example.project.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

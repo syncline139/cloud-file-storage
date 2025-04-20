@@ -1,12 +1,10 @@
-package com.example.project.auth;
+package com.example.project.controllers;
 
 import com.example.project.annotations.auth.UserSignInDoc;
 import com.example.project.annotations.auth.UserSignOutDoc;
 import com.example.project.annotations.auth.UserSignUpDoc;
 import com.example.project.dto.request.UserDTO;
-import com.example.project.services.auth.SignInService;
-import com.example.project.services.auth.LogoutService;
-import com.example.project.services.auth.SignUpService;
+import com.example.project.services.AuthService;
 import com.example.project.utils.BindingResultValidator;
 import com.example.project.utils.LoginExistenceValidator;
 import com.example.project.utils.UniqueLoginValidation;
@@ -30,11 +28,10 @@ import java.util.Map;
 public class AuthController {
 
     private final UniqueLoginValidation uniqueLoginValidation;
-    private final SignUpService signUpService;
     private final BindingResultValidator bindingResultValidator;
     private final LoginExistenceValidator loginExistenceValidator;
-    private final SignInService signInService;
-    private final LogoutService logoutService;
+    private final AuthService authService;
+
 
     @UserSignUpDoc
     @PostMapping("/sign-up")
@@ -45,7 +42,7 @@ public class AuthController {
         uniqueLoginValidation.validate(userDTO);
 
 
-        signUpService.save(userDTO, request);
+        authService.registerAndAuthenticateUser(userDTO, request);
 
             return ResponseEntity
                 .status(HttpStatus.CREATED) // 201
@@ -62,7 +59,7 @@ public class AuthController {
         loginExistenceValidator.validation(userDTO);
 
 
-        signInService.authentication(userDTO,request);
+        authService.authenticate(userDTO,request);
 
         return ResponseEntity
                 .status(HttpStatus.OK)  // 200
@@ -73,7 +70,7 @@ public class AuthController {
     @PostMapping("/sign-out")
     public ResponseEntity<HttpStatus> logout(HttpServletRequest request) {
 
-        logoutService.logout(request);
+        authService.logout(request);
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
     }

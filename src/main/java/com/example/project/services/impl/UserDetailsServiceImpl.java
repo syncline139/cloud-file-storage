@@ -1,8 +1,8 @@
-package com.example.project.services.auth;
+package com.example.project.services.impl;
 
 
 import com.example.project.entity.User;
-import com.example.project.exceptions.UniqueLoginException;
+import com.example.project.exceptions.auth.UniqueLoginException;
 import com.example.project.repositories.UserRepository;
 import com.example.project.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;

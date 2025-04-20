@@ -1,4 +1,4 @@
-package com.example.project.exceptions;
+package com.example.project.exceptions.auth;
 
 /**
  * Исключение выбрасывается для обработки ошибок валидации пришедшей с сущности или DTO

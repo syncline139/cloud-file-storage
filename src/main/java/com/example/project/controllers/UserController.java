@@ -1,7 +1,7 @@
-package com.example.project.auth;
+package com.example.project.controllers;
 
 import com.example.project.annotations.profile.UserInfoDoc;
-import com.example.project.services.profile.UserService;
+import com.example.project.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<?> userLoginInfo() {
 
-        UserDetails user = userService.info();
+        UserDetails user = userService.getAuthenticatedUserDetails();
 
         return ResponseEntity
                 .status(HttpStatus.OK)

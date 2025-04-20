@@ -1,18 +1,23 @@
 package com.example.project.exceptions;
 
 import com.example.project.dto.response.UserErrorResponse;
+import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
+import com.example.project.exceptions.auth.LoginExistenceException;
+import com.example.project.exceptions.auth.UniqueLoginException;
+import com.example.project.exceptions.auth.UserNotValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
  * Класс отвечает за поимку всех исключений помеченными @RestController
  * он их обрабатывает и отпрвляет пользотвалю JSON c ошибкой
  */
-@ControllerAdvice(annotations = RestController.class)
+@RestControllerAdvice(annotations = RestController.class)
 public class GlobalExceptionHandler {
 
     // ошибки валидации (пример - слишком короткий login)
