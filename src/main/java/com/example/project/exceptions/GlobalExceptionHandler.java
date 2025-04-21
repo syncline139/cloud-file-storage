@@ -1,10 +1,9 @@
 package com.example.project.exceptions;
 
 import com.example.project.dto.response.UserErrorResponse;
-import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
-import com.example.project.exceptions.auth.LoginExistenceException;
-import com.example.project.exceptions.auth.UniqueLoginException;
-import com.example.project.exceptions.auth.UserNotValidationException;
+import com.example.project.exceptions.auth.*;
+import com.example.project.exceptions.storage.MissingOrInvalidPathException;
+import com.example.project.exceptions.storage.PathNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -99,6 +98,41 @@ public class GlobalExceptionHandler {
                 System.currentTimeMillis()
         );
         return new ResponseEntity<>(response, status); //401
+    }
+
+    @ExceptionHandler(PathNotFoundException.class)
+    public ResponseEntity<UserErrorResponse> handlePathNotFound(PathNotFoundException e) {
+
+        HttpStatus status = HttpStatus.NOT_FOUND;
+
+        UserErrorResponse response = new UserErrorResponse(
+                e.getMessage(),
+                status.value(),
+                System.currentTimeMillis()
+        );
+        return new ResponseEntity<>(response, status);
+    }
+
+    @ExceptionHandler(SpongeBobSquarePants.class)
+    public ResponseEntity<UserErrorResponse> handleException(SpongeBobSquarePants e) {
+        HttpStatus status = HttpStatus.I_AM_A_TEAPOT;
+        UserErrorResponse response = new UserErrorResponse(
+                e.getMessage(),
+                status.value(),
+                System.currentTimeMillis()
+        );
+        return new ResponseEntity<>(response, status);
+    }
+
+    @ExceptionHandler(MissingOrInvalidPathException.class)
+    public ResponseEntity<UserErrorResponse> handleException(MissingOrInvalidPathException e) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        UserErrorResponse response = new UserErrorResponse(
+                e.getMessage(),
+                status.value(),
+                System.currentTimeMillis()
+        );
+        return new ResponseEntity<>(response, status);
     }
 
 }

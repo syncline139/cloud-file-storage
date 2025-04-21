@@ -58,6 +58,11 @@ public class AuthValidationImpl implements AuthValidation {
             throw new UniqueLoginException(String.format("Пользователь с логином '%s' уже зарегистрирован",userDTO.getLogin()));
         }
 
-        log.info("Логин доступен для регистрации");
+        if (userDTO.getLogin().equals("anonymousUser")) {
+            log.warn("Мимо челик");
+        } else {
+            log.info("Логин доступен для регистрации");
+        }
+
     }
 }

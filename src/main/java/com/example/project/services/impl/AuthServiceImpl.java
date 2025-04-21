@@ -3,6 +3,7 @@ package com.example.project.services.impl;
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
+import com.example.project.exceptions.auth.SpongeBobSquarePants;
 import com.example.project.mappers.UserMapper;
 import com.example.project.repositories.UserRepository;
 import com.example.project.services.AuthService;
@@ -39,6 +40,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public void registerAndAuthenticateUser(UserDTO userDTO, HttpServletRequest request) {
+
+        if (userDTO.getLogin().equals("anonymousUser")) {
+            throw new SpongeBobSquarePants("Мимо челик");
+        }
 
         final User user = userMapper.convertToUser(userDTO);
         log.info("Конвертация userDTO в сущность User прошла успешно");
