@@ -18,10 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional(readOnly = true)
 @Slf4j
 @RequiredArgsConstructor
 @Primary
+@Transactional(readOnly = true)
 public class StorageServiceImpl implements StorageService {
 
     private final MinioClient minioClient;
@@ -49,8 +49,9 @@ public class StorageServiceImpl implements StorageService {
         if (!bucketExists) {
             log.warn("Бакета с именем {} не существует!", bucketName);
             throw new BucketNotFoundException("Бакета '" + bucketName + "' не существует");
+        } else {
+            log.info("Бакет c именем: {} найден",bucketName);
         }
-        log.info("Бакет c именем: {} найден",bucketName);
 
         if (path == null || path.trim().isEmpty()) {
             log.info("Путь: {} это бакет",bucketName);
@@ -62,7 +63,11 @@ public class StorageServiceImpl implements StorageService {
 
 
         Iterable<Result<Item>> results = minioClient.listObjects(
-                ListObjectsArgs.builder().bucket(bucketName).prefix(normalizedPath).recursive(false).build()
+                ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(normalizedPath)
+                        .recursive(false)
+                        .build()
         );
 
         for (Result<Item> result : results) {
@@ -96,6 +101,8 @@ public class StorageServiceImpl implements StorageService {
         log.warn("По пути {} ничего не было найдено",normalizedPath);
         throw new MissingOrInvalidPathException("невалидный или отсутствующий путь: " + path);
     }
+
+
 
     private String activeUserName() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
