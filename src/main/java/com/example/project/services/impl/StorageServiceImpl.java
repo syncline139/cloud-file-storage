@@ -3,10 +3,12 @@ package com.example.project.services.impl;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.BucketNotFoundException;
+import com.example.project.exceptions.storage.MinioNotFoundException;
 import com.example.project.exceptions.storage.MissingOrInvalidPathException;
 import com.example.project.exceptions.storage.PathNotFoundException;
 import com.example.project.services.StorageService;
 import io.minio.*;
+import io.minio.errors.*;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -16,6 +18,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 @Service
 @Slf4j
@@ -38,20 +44,13 @@ public class StorageServiceImpl implements StorageService {
      *
      * @param path путь пришедший от пользотваля
      */
-    @SneakyThrows
     @Override
-    public ResourceInfoResponse resourceInfo(String path) {
+    public ResourceInfoResponse resourceInfo(String path){
         // Получаем имя бакета (логин пользователя)
         String bucketName = activeUserName();
         log.info("Проверяем бакет: {}, путь: {}", bucketName,path);
 
-        boolean bucketExists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
-        if (!bucketExists) {
-            log.warn("Бакета с именем {} не существует!", bucketName);
-            throw new BucketNotFoundException("Бакета '" + bucketName + "' не существует");
-        } else {
-            log.info("Бакет c именем: {} найден",bucketName);
-        }
+        bucketExists(bucketName);
 
         if (path == null || path.trim().isEmpty()) {
             log.info("Путь: {} это бакет",bucketName);
@@ -70,8 +69,16 @@ public class StorageServiceImpl implements StorageService {
                         .build()
         );
 
-        for (Result<Item> result : results) {
-            Item item = result.get();
+        for (Result<Item> result : results)  {
+
+            Item item;
+            try {
+                item = result.get();
+            } catch (Exception e) {
+                log.error("Не удалось получить Item: {}", e.getMessage());
+                continue;
+            }
+
             String itemPath = item.objectName();
 
             // файл
@@ -102,7 +109,94 @@ public class StorageServiceImpl implements StorageService {
         throw new MissingOrInvalidPathException("невалидный или отсутствующий путь: " + path);
     }
 
+    /**
+     * yзнать является путь директорией или пакой
+     * если файл - удаляем
+     * если директория - проходимся по всем директории и удаляем все находившиеся в ней файлы
+     * сама папка будет удалена автоматически если она будет пустой
+     */
+    @Override
+    public void removeResource(String path) {
 
+        String bucketName = activeUserName();
+
+        bucketExists(bucketName);
+
+        if (path == null || path.trim().isEmpty()) {
+            throw new BucketNotFoundException("Невозможно удалить бакет");
+        }
+
+        String normalizedPath = path.replaceAll("^/+|/+$", "");
+
+        boolean file = false;
+        boolean isFolderOrFileDeleted = false;
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizedPath)
+                    .build());
+
+            file = true;
+
+            minioClient.removeObject(RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(normalizedPath)
+                    .build());
+            isFolderOrFileDeleted = true;
+        } catch (Exception e) {
+            // это папка
+        }
+
+
+        if (!file) {
+          Iterable<Result<Item>> listObjects =  minioClient.listObjects(ListObjectsArgs.builder()
+                    .prefix(normalizedPath + "/")
+                    .bucket(bucketName)
+                    .recursive(true)
+                    .build());
+
+            for (Result<Item> result : listObjects) {
+
+                Item item;
+                try {
+                    item = result.get();
+                } catch (Exception e) {
+                    continue;
+                }
+
+                try {
+                    minioClient.removeObject(RemoveObjectArgs.builder()
+                                    .bucket(bucketName)
+                            .object(item.objectName())
+                            .build());
+                } catch (Exception e) {
+                    throw new PathNotFoundException("Ресурс не найден | " + e.getMessage());
+                }
+            }
+            isFolderOrFileDeleted = true;
+        }
+
+        if (!isFolderOrFileDeleted) {
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
+        }
+
+
+
+    }
+
+    private void bucketExists(String bucketName) {
+
+        try {
+            if (minioClient.bucketExists(BucketExistsArgs.builder()
+                    .bucket(bucketName)
+                    .build())) {
+                log.info("Бакет c именем: {} найден", bucketName);
+            }
+        } catch (Exception e) {
+            log.error("Бакета с именем {} не существует!", bucketName);
+            throw new BucketNotFoundException("Бакета '" + bucketName + "' не существует");
+        }
+    }
 
     private String activeUserName() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

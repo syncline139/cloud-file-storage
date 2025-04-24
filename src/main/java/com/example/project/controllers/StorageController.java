@@ -14,13 +14,12 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/resource")
 public class StorageController {
 
     private final StorageService storageService;
 
-    @SneakyThrows
-    @GetMapping("/resource")
+    @GetMapping
     public ResponseEntity<?> resourceInfo(@RequestParam("path") String path) {
 
 
@@ -28,6 +27,17 @@ public class StorageController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping
+    public ResponseEntity<HttpStatus> removeResource(@RequestParam("path") String path) {
+
+        storageService.removeResource(path);
+
+        return ResponseEntity
+                .status(HttpStatus.NO_CONTENT)
+                .body(null);
+    }
+
 
 }
 

@@ -6,4 +6,6 @@ public interface StorageService {
 
     ResourceInfoResponse resourceInfo(String path);
 
+    void removeResource(String path);
+
 }
