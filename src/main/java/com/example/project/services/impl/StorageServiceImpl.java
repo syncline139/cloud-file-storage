@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
 
 @Service
 @Slf4j
@@ -155,7 +156,14 @@ public class StorageServiceImpl implements StorageService {
                     .recursive(true)
                     .build());
 
+            Iterator<Result<Item>> iterator = listObjects.iterator();
+
+            if (!iterator.hasNext()) {
+                throw new PathNotFoundException("Ресурс не найден");
+            }
+
             for (Result<Item> result : listObjects) {
+
 
                 Item item;
                 try {
