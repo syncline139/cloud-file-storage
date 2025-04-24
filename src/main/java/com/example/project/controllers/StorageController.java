@@ -49,6 +49,20 @@ public class StorageController {
                 .body(null);
     }
 
+    /**
+     *
+     * @param from старый путь
+     * @param to новый путь
+     */
+    @GetMapping("move")
+    public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from, @RequestParam("to") String to) {
+
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(null);
+    }
+
 
 }
 

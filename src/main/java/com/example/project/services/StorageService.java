@@ -11,4 +11,6 @@ public interface StorageService {
 
     void downloadResource(String path, HttpServletResponse response);
 
+    ResourceInfoResponse moverOrRename(String from, String to);
+
 }

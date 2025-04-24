@@ -12,16 +12,13 @@ import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.Get;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.zip.ZipEntry;
@@ -144,7 +141,7 @@ public class StorageServiceImpl implements StorageService {
             isFolderOrFileDeleted = true;
             log.info("Файл по пути {} был успешно удален",normalizedPath);
         } catch (Exception e) {
-            // Скорее всего папка
+            log.info("Путь: {} не является файлом, проверяем как папку", normalizedPath);
         }
 
 
@@ -199,7 +196,7 @@ public class StorageServiceImpl implements StorageService {
         bucketExists(bucketName);
 
         if (path == null || path.trim().isEmpty()) {
-            throw new BucketNotFoundException("Невозможно скачать бакет");
+            throw new PathNotFoundException("Невозможно скачать бакет");
         }
 
         String normalizedPath = path.replaceAll("^/+|/+$", "");
@@ -214,7 +211,7 @@ public class StorageServiceImpl implements StorageService {
                     .build());
             isFile = true;
         } catch (Exception e) {
-            //
+            log.info("Путь: {} не является файлом, проверяем как папку", normalizedPath);
         }
 
         if (!isFile) {
@@ -242,6 +239,7 @@ public class StorageServiceImpl implements StorageService {
 
 
         if (!isFile && !hasFiles) {
+            log.warn("Ресурс не найден");
             throw new PathNotFoundException("ресурс не найден: " + path);
         }
 
@@ -257,15 +255,7 @@ public class StorageServiceImpl implements StorageService {
                         .build())) {
 
                     String fileName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
-                    ZipEntry zipEntry = new ZipEntry(fileName);
-                    zipOut.putNextEntry(zipEntry);
-
-                    byte[] bytes = new byte[1024];
-                    int length;
-                    while ((length = fileToZip.read(bytes)) >= 0) {
-                        zipOut.write(bytes, 0, length);
-                    }
-                    zipOut.closeEntry();
+                    zip(zipOut, fileToZip, fileName);
                 }
             } else {
                 Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
@@ -277,7 +267,7 @@ public class StorageServiceImpl implements StorageService {
                 for (Result<Item> result : results) {
                     Item item = result.get();
                     String objectName = item.objectName();
-                    if (objectName.endsWith("/")) {
+                    if (objectName.endsWith("/")) { // пропускаем папку
                         continue;
                     }
 
@@ -286,24 +276,113 @@ public class StorageServiceImpl implements StorageService {
                             .object(objectName)
                             .build())) {
                         String relativePath = objectName.substring(normalizedPath.length() + 1);
-                        ZipEntry zipEntry = new ZipEntry(relativePath);
-                        zipOut.putNextEntry(zipEntry);
-
-                        byte[] bytes = new byte[1024];
-                        int length;
-                        while ((length = fileToZip.read(bytes)) >= 0) {
-                            zipOut.write(bytes, 0, length);
-                        }
-                        zipOut.closeEntry();
+                        zip(zipOut, fileToZip, relativePath);
 
                     }
                 }
             }
             zipOut.finish();
-            log.info("Файл или папка по пути {} успешно скачаны как archive.zip", normalizedPath);
+
+            if (isFile) {
+                log.info("Файл по пути: '{}' успешно скачен как archive.zip", normalizedPath);
+            } else {
+                log.info("Директория по пути: '{}' успешно скачена как archive.zip", normalizedPath);
+
+            }
         } catch (Exception e) {
-            throw new MinioNotFoundException("хз");
+            log.error("Ошибка при скачивании ресурса по пути {}: {}", normalizedPath, e.getMessage());
+            throw new MinioNotFoundException("Ошибка при скачивании из MinIO: " + e.getMessage());
         }
+    }
+
+    /**
+     * Получаем от пользотваля 2 полных пути старый и новый
+     * 1) Узнаем пользотваль хочет переименовать или переместить
+     *     1. При переименовании меняется только имя файла
+     *     2. При перемещении меняется только путь к файлу
+     *   исходя из этого мы узнаем что хочет пользоваль
+     * 2) Узнаем файл это или папка
+     *    1. Файл -
+     *       1) перемещение -   при перетаскивание удаляет файл со старого пути и создается в новом
+     *       2) При переименовании меняется только имя файла
+     *    2. Папка - если перетаскиваем значит
+     *       1) перемещение - Создается папка по новому пути туда перемещаются файлы со старого пути при это
+     *       в старой директории файлы удаляеются и за ним и папка при удаленнии всех файлов
+     *       2) Переименование по тому же пути создаем новую папку и туда перетаскиваем со старой папки файлы и удаляем их старой папки не должно быть
+     */
+    @Override
+    public ResourceInfoResponse moverOrRename(String oldPath, String newPath) {
+//
+//        boolean isMove = false; // переместить
+//        boolean isRename = false; // переименовать
+//        boolean isFile = false; // файл
+//        boolean isDirecorty = false; // папка
+//
+//        String bucketName = activeUserName();
+//        bucketExists(bucketName);
+//
+//
+//
+//        // проверка на файл
+//        try {
+//            minioClient.statObject(StatObjectArgs.builder()
+//                    .bucket(bucketName)
+//                    .object(oldPath)
+//                    .build());
+//            isFile = true;
+//        } catch (Exception e) {
+//            log.warn("Путь {} не является файлов, проверяем как папку", oldPath);
+//        }
+//
+//        Iterable<Result<Item>> listObjects = minioClient.listObjects(ListObjectsArgs.builder()
+//                .bucket(bucketName)
+//                .prefix(oldPath)
+//                .recursive(false)
+//                .build());
+//
+//        // проверка на папку
+//        for (Result<Item> result : listObjects) {
+//            Item item;
+//            try {
+//                item = result.get();
+//            } catch (Exception e) {
+//                continue;
+//            }
+//
+//            String objectName = item.objectName();
+//
+//            if (!objectName.endsWith("/")) {
+//                isDirecorty = true;
+//                break;
+//            }
+//
+//
+//            if (!isFile && !isDirecorty) {
+//                log.warn("Ресурс не найден");
+//                throw new PathNotFoundException("ресурс не найден: " + oldPath);
+//            }
+//
+//            if (isFile) {
+//                if (oldPath.substring(0, oldPath.lastIndexOf('/')).equals(newPath.substring(0, newPath.lastIndexOf('/'))) ) {
+//                }
+//            }
+//
+//
+//        }
+        return null;
+    }
+
+
+    private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
+        ZipEntry zipEntry = new ZipEntry(relativePath);
+        zipOut.putNextEntry(zipEntry);
+
+        byte[] bytes = new byte[1024];
+        int length;
+        while ((length = fileToZip.read(bytes)) >= 0) {
+            zipOut.write(bytes, 0, length);
+        }
+        zipOut.closeEntry();
     }
 
     private void bucketExists(String bucketName) {
@@ -316,7 +395,7 @@ public class StorageServiceImpl implements StorageService {
             }
         } catch (Exception e) {
             log.error("Бакета с именем {} не существует!", bucketName);
-            throw new BucketNotFoundException("Бакета '" + bucketName + "' не существует");
+            throw new BucketNotFoundException(String.format("Бакета '%s' не существует", bucketName));
         }
     }
 
