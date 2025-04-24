@@ -3,6 +3,7 @@ package com.example.project.controllers;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.services.StorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
@@ -38,7 +39,15 @@ public class StorageController {
                 .body(null);
     }
 
+    @GetMapping("/download")
+    public ResponseEntity<HttpStatus> downloadResource(@RequestParam("path") String path, HttpServletResponse response) {
 
+        storageService.downloadResource(path,response);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(null);
+    }
 
 
 }

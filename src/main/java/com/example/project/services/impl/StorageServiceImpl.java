@@ -8,21 +8,24 @@ import com.example.project.exceptions.storage.MissingOrInvalidPathException;
 import com.example.project.exceptions.storage.PathNotFoundException;
 import com.example.project.services.StorageService;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.messages.Item;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.Get;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.Iterator;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 @Slf4j
@@ -110,12 +113,6 @@ public class StorageServiceImpl implements StorageService {
         throw new MissingOrInvalidPathException("невалидный или отсутствующий путь: " + path);
     }
 
-    /**
-     * yзнать является путь директорией или пакой
-     * если файл - удаляем
-     * если директория - проходимся по всем директории и удаляем все находившиеся в ней файлы
-     * сама папка будет удалена автоматически если она будет пустой
-     */
     @Override
     public void removeResource(String path) {
 
@@ -124,12 +121,13 @@ public class StorageServiceImpl implements StorageService {
         bucketExists(bucketName);
 
         if (path == null || path.trim().isEmpty()) {
+            log.error("Невозможно удалить бакет");
             throw new BucketNotFoundException("Невозможно удалить бакет");
         }
 
         String normalizedPath = path.replaceAll("^/+|/+$", "");
 
-        boolean file = false;
+        boolean isFile = false;
         boolean isFolderOrFileDeleted = false;
         try {
             minioClient.statObject(StatObjectArgs.builder()
@@ -137,19 +135,20 @@ public class StorageServiceImpl implements StorageService {
                     .object(normalizedPath)
                     .build());
 
-            file = true;
-
+            isFile = true;
+            log.info("Путь {} был определен как файл", normalizedPath);
             minioClient.removeObject(RemoveObjectArgs.builder()
                             .bucket(bucketName)
                             .object(normalizedPath)
                     .build());
             isFolderOrFileDeleted = true;
+            log.info("Файл по пути {} был успешно удален",normalizedPath);
         } catch (Exception e) {
-            // это папка
+            // Скорее всего папка
         }
 
 
-        if (!file) {
+        if (!isFile) {
           Iterable<Result<Item>> listObjects =  minioClient.listObjects(ListObjectsArgs.builder()
                     .prefix(normalizedPath + "/")
                     .bucket(bucketName)
@@ -159,11 +158,11 @@ public class StorageServiceImpl implements StorageService {
             Iterator<Result<Item>> iterator = listObjects.iterator();
 
             if (!iterator.hasNext()) {
+                log.error("Путь: {} ничего не содержит",normalizedPath);
                 throw new PathNotFoundException("Ресурс не найден");
             }
 
             for (Result<Item> result : listObjects) {
-
 
                 Item item;
                 try {
@@ -178,6 +177,7 @@ public class StorageServiceImpl implements StorageService {
                             .object(item.objectName())
                             .build());
                 } catch (Exception e) {
+                    log.error("Ресурс не найден | {}", e.getMessage());
                     throw new PathNotFoundException("Ресурс не найден | " + e.getMessage());
                 }
             }
@@ -185,11 +185,125 @@ public class StorageServiceImpl implements StorageService {
         }
 
         if (!isFolderOrFileDeleted) {
+            log.error("Невалидный или отсутствующий путь | {}", normalizedPath);
             throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
+        }
+    }
+
+
+    @Override
+    public void downloadResource(String path, HttpServletResponse response) {
+
+        String bucketName = activeUserName();
+
+        bucketExists(bucketName);
+
+        if (path == null || path.trim().isEmpty()) {
+            throw new BucketNotFoundException("Невозможно скачать бакет");
+        }
+
+        String normalizedPath = path.replaceAll("^/+|/+$", "");
+
+        boolean isFile = false;
+        boolean hasFiles = false;
+
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizedPath)
+                    .build());
+            isFile = true;
+        } catch (Exception e) {
+            //
+        }
+
+        if (!isFile) {
+            Iterable<Result<Item>> listObjects = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .prefix(normalizedPath + "/")
+                    .recursive(true)
+                    .build());
+
+            for (Result<Item> result : listObjects) {
+                Item item;
+                try {
+                    item = result.get();
+                } catch (Exception e) {
+                    continue;
+                }
+
+                String objectName = item.objectName();
+                if (!objectName.endsWith("/")) {
+                    hasFiles = true;
+                    break;
+                }
+            }
         }
 
 
+        if (!isFile && !hasFiles) {
+            throw new PathNotFoundException("ресурс не найден: " + path);
+        }
 
+        response.setContentType("application/zip");
+        response.setHeader("Content-Disposition", "attachment; filename=\"archive.zip\"");
+
+
+        try (ZipOutputStream zipOut = new ZipOutputStream(response.getOutputStream())) {
+            if (isFile) {
+                try (InputStream fileToZip = minioClient.getObject(GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(normalizedPath)
+                        .build())) {
+
+                    String fileName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
+                    ZipEntry zipEntry = new ZipEntry(fileName);
+                    zipOut.putNextEntry(zipEntry);
+
+                    byte[] bytes = new byte[1024];
+                    int length;
+                    while ((length = fileToZip.read(bytes)) >= 0) {
+                        zipOut.write(bytes, 0, length);
+                    }
+                    zipOut.closeEntry();
+                }
+            } else {
+                Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(normalizedPath + "/")
+                        .recursive(true)
+                        .build());
+
+                for (Result<Item> result : results) {
+                    Item item = result.get();
+                    String objectName = item.objectName();
+                    if (objectName.endsWith("/")) {
+                        continue;
+                    }
+
+                    try (InputStream fileToZip = minioClient.getObject(GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .build())) {
+                        String relativePath = objectName.substring(normalizedPath.length() + 1);
+                        ZipEntry zipEntry = new ZipEntry(relativePath);
+                        zipOut.putNextEntry(zipEntry);
+
+                        byte[] bytes = new byte[1024];
+                        int length;
+                        while ((length = fileToZip.read(bytes)) >= 0) {
+                            zipOut.write(bytes, 0, length);
+                        }
+                        zipOut.closeEntry();
+
+                    }
+                }
+            }
+            zipOut.finish();
+            log.info("Файл или папка по пути {} успешно скачаны как archive.zip", normalizedPath);
+        } catch (Exception e) {
+            throw new MinioNotFoundException("хз");
+        }
     }
 
     private void bucketExists(String bucketName) {
