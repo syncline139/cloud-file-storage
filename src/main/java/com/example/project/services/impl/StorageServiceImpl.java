@@ -320,27 +320,30 @@ public class StorageServiceImpl implements StorageService {
             log.warn("Путь {} не является файлов, проверяем как папку", oldPath);
         }
 
-        Iterable<Result<Item>> listObjects = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(bucketName)
-                .prefix(oldPath)
-                .recursive(false)
-                .build());
-
         // проверка на папку
-        for (Result<Item> result : listObjects) {
-            Item item;
-            try {
-                item = result.get();
-            } catch (Exception e) {
-                continue;
-            }
+        if (!isFile) {
+            Iterable<Result<Item>> listObjects = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .prefix(oldPath)
+                    .recursive(false)
+                    .build());
+            for (Result<Item> result : listObjects) {
+                Item item;
+                try {
+                    item = result.get();
 
-            String objectName = item.objectName();
+                    String objectName = item.objectName();
 
-            // Если в папке есть хоть один объект который не заканчивается на '/' значит в папке ест файлы
-            if (!objectName.endsWith("/")) {
-                isDirecorty = true;
+                    // Если в папке есть хоть один объект который не заканчивается на '/' значит в папке ест файлы
+                    if (!objectName.endsWith("/")) {
+                        isDirecorty = true;
+                    }
+                } catch (Exception e) {
+                    //
+                }
+
             }
+        }
 
 
             if (!isFile && !isDirecorty) {
@@ -370,7 +373,7 @@ public class StorageServiceImpl implements StorageService {
             }
 
             // переименование
-            if (isFile && isRename) {
+            if (isFile && isRename || isFile && isMove) {
 
                 try {
                     minioClient.copyObject(CopyObjectArgs.builder()
@@ -395,7 +398,7 @@ public class StorageServiceImpl implements StorageService {
 
 
 
-        }
+
         return null;
     }
 
