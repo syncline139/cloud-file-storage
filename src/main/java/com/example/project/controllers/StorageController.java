@@ -57,6 +57,7 @@ public class StorageController {
     @GetMapping("move")
     public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from, @RequestParam("to") String to) {
 
+        storageService.moverOrRename(from, to);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
