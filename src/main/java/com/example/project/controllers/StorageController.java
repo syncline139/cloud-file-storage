@@ -57,11 +57,11 @@ public class StorageController {
     @GetMapping("move")
     public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from, @RequestParam("to") String to) {
 
-        storageService.moverOrRename(from, to);
+        ResourceInfoResponse resourceInfoResponse = storageService.moverOrRename(from, to);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(null);
+                .body(resourceInfoResponse);
     }
 
 

@@ -1,11 +1,9 @@
 package com.example.project.services.impl;
 
 import com.example.project.dto.response.ResourceInfoResponse;
+import com.example.project.dto.response.UserErrorResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
-import com.example.project.exceptions.storage.BucketNotFoundException;
-import com.example.project.exceptions.storage.MinioNotFoundException;
-import com.example.project.exceptions.storage.MissingOrInvalidPathException;
-import com.example.project.exceptions.storage.PathNotFoundException;
+import com.example.project.exceptions.storage.*;
 import com.example.project.services.StorageService;
 import com.example.project.utils.FileAction;
 import io.minio.*;
@@ -304,8 +302,9 @@ public class StorageServiceImpl implements StorageService {
 
         boolean isFile = false; // файл
         boolean isDirectory = false; // папка
-        boolean isMove = false;
-        boolean isRename = false;
+        boolean isMove = false; // перемещение
+        boolean isRename = false; // переименование
+        long size = 0; // размер файла
 
         String bucketName = activeUserName();
         bucketExists(bucketName);
@@ -313,14 +312,45 @@ public class StorageServiceImpl implements StorageService {
         String normalizedOldPath = oldPath.replaceAll("^/+|/+$", "");
         String normalizedNewPath = newPath.replaceAll("^/+|/+$", "");
 
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizedNewPath)
+                    .build());
+            throw new ResourceAlreadyExistsException(normalizedNewPath);
+        } catch (ResourceAlreadyExistsException e) {
+            log.warn("Файл, лежащий по пути '{}' уже существует",normalizedNewPath);
+            throw e;
+        }catch (Exception e) {
+            //
+        }
+
+        try {
+            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .prefix(normalizedNewPath + '/')
+                    .maxKeys(1)
+                    .build());
+
+            if (results.iterator().hasNext()) {
+                throw new ResourceAlreadyExistsException(normalizedNewPath);
+            }
+        } catch (ResourceAlreadyExistsException e) {
+            log.warn("Папка, лежащая по пути '{}{}' уже существует",normalizedNewPath,'/');
+            throw e;
+        }catch (Exception e) {
+            //
+        }
+
 
         // проверка на файл
         try {
-            minioClient.statObject(StatObjectArgs.builder()
+            StatObjectResponse statObjectResponse = minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
                     .object(normalizedOldPath)
                     .build());
             isFile = true;
+            size = statObjectResponse.size();
         } catch (Exception e) {
             log.warn("Путь {} не является файлов, проверяем как папку", oldPath);
         }
@@ -344,7 +374,7 @@ public class StorageServiceImpl implements StorageService {
                         isDirectory = true;
                     }
                 } catch (Exception e) {
-                    //
+                    log.warn("Путь {} не является папкой: -> {}",oldPath ,e.getMessage());
                 }
 
             }
@@ -415,9 +445,14 @@ public class StorageServiceImpl implements StorageService {
                             .build());
 
                 } catch (Exception e) {
-                    // todo
+                    throw new PathNotFoundException("ресурс не найден");
                 }
             }
+
+        if (isFile) {
+            String nameFile = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/') + 1);
+            return new ResourceInfoResponse(normalizedNewPath,nameFile,size, "FILE");
+        }
 
         if (isDirectory) {
             Iterable<Result<Item>> listObjects = minioClient.listObjects(ListObjectsArgs.builder()
@@ -457,18 +492,24 @@ public class StorageServiceImpl implements StorageService {
                                 .build());
                     }
 
-
                     minioClient.removeObject(RemoveObjectArgs.builder()
                                     .bucket(bucketName)
                                     .object(item.objectName())
                             .build());
                 } catch (Exception e) {
-                    //todo
+                    throw new PathNotFoundException("ресурс не найден");
                 }
             }
         }
 
-        return null;
+        if (isDirectory) {
+            String path = normalizedNewPath.substring(0,normalizedNewPath.lastIndexOf("/") + 1);
+            String name = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/'));
+            return new ResourceInfoResponse(path,name, "DIRECTORY");
+        }
+
+
+        throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
     }
 
     private FileAction detectFileAction(String oldPath, String newPath) {

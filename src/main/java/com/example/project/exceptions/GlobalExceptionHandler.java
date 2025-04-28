@@ -4,6 +4,7 @@ import com.example.project.dto.response.UserErrorResponse;
 import com.example.project.exceptions.auth.*;
 import com.example.project.exceptions.storage.MissingOrInvalidPathException;
 import com.example.project.exceptions.storage.PathNotFoundException;
+import com.example.project.exceptions.storage.ResourceAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -132,6 +133,19 @@ public class GlobalExceptionHandler {
                 status.value(),
                 System.currentTimeMillis()
         );
+        return new ResponseEntity<>(response, status);
+    }
+
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<UserErrorResponse> handleException(ResourceAlreadyExistsException e) {
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        UserErrorResponse response = new UserErrorResponse(
+                e.getMessage(),
+                status.value(),
+                System.currentTimeMillis()
+        );
+
         return new ResponseEntity<>(response, status);
     }
 
