@@ -299,7 +299,7 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public ResourceInfoResponse moverOrRename(String oldPath, String newPath) {
-        log.info("Пользователь вошел в метод 'moverOrRename', старый путь: '{}', новый путь: '{}'", oldPath, newPath);
+        log.info("Вошел в метод 'moverOrRename', старый путь: '{}', новый путь: '{}'", oldPath, newPath);
 
         boolean isFile = false; // файл
         boolean isDirectory = false; // папка
@@ -350,10 +350,9 @@ public class StorageServiceImpl implements StorageService {
         }
 
         if (!isFile && !isDirectory) {
-                log.warn("Ресурс не найден");
+                log.warn("Ресурс не найден {}",normalizedOldPath);
                 throw new PathNotFoundException("ресурс не найден: " + oldPath);
             }
-
 
         if (isFile) {
             try {
@@ -369,8 +368,22 @@ public class StorageServiceImpl implements StorageService {
                 log.info("Провальная проверка на файл, скорее всего это директория!");
             }
         }
+        if (isDirectory) {
+            String prefix = normalizedNewPath.endsWith("/") ? normalizedNewPath : normalizedNewPath + "/";
 
-            // переименование файла
+            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .prefix(prefix)
+                    .maxKeys(1)
+                    .build());
+
+            if (results.iterator().hasNext()) {
+                throw new ResourceAlreadyExistsException(normalizedNewPath);
+            }
+        }
+
+
+        // переименование файла
             if (isFile) {
                 log.info("Попытка переименовать файл");
                 try {
