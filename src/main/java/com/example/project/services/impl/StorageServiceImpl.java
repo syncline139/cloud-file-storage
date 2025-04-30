@@ -1,7 +1,6 @@
 package com.example.project.services.impl;
 
 import com.example.project.dto.response.ResourceInfoResponse;
-import com.example.project.dto.response.UserErrorResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.*;
 import com.example.project.services.StorageService;
@@ -17,7 +16,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -33,6 +31,8 @@ import java.util.zip.ZipOutputStream;
 public class StorageServiceImpl implements StorageService {
 
     private final MinioClient minioClient;
+    private final Object fileSystemOperationLock = new Object();
+
 
 
     /**
@@ -299,11 +299,10 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public ResourceInfoResponse moverOrRename(String oldPath, String newPath) {
+        log.info("Пользователь вошел в метод 'moverOrRename', старый путь: '{}', новый путь: '{}'", oldPath, newPath);
 
         boolean isFile = false; // файл
         boolean isDirectory = false; // папка
-        boolean isMove = false; // перемещение
-        boolean isRename = false; // переименование
         long size = 0; // размер файла
 
         String bucketName = activeUserName();
@@ -311,37 +310,6 @@ public class StorageServiceImpl implements StorageService {
 
         String normalizedOldPath = oldPath.replaceAll("^/+|/+$", "");
         String normalizedNewPath = newPath.replaceAll("^/+|/+$", "");
-
-        try {
-            minioClient.statObject(StatObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(normalizedNewPath)
-                    .build());
-            throw new ResourceAlreadyExistsException(normalizedNewPath);
-        } catch (ResourceAlreadyExistsException e) {
-            log.warn("Файл, лежащий по пути '{}' уже существует",normalizedNewPath);
-            throw e;
-        }catch (Exception e) {
-            //
-        }
-
-        try {
-            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(bucketName)
-                    .prefix(normalizedNewPath + '/')
-                    .maxKeys(1)
-                    .build());
-
-            if (results.iterator().hasNext()) {
-                throw new ResourceAlreadyExistsException(normalizedNewPath);
-            }
-        } catch (ResourceAlreadyExistsException e) {
-            log.warn("Папка, лежащая по пути '{}{}' уже существует",normalizedNewPath,'/');
-            throw e;
-        }catch (Exception e) {
-            //
-        }
-
 
         // проверка на файл
         try {
@@ -351,8 +319,9 @@ public class StorageServiceImpl implements StorageService {
                     .build());
             isFile = true;
             size = statObjectResponse.size();
+            log.info("Путь: '{}' является файлом", normalizedNewPath);
         } catch (Exception e) {
-            log.warn("Путь {} не является файлов, проверяем как папку", oldPath);
+            log.warn("Путь: '{}' не является файлов, проверяем как папку", normalizedOldPath + '/');
         }
 
         // проверка на папку
@@ -366,86 +335,66 @@ public class StorageServiceImpl implements StorageService {
                 Item item;
                 try {
                     item = result.get();
-
                     String objectName = item.objectName();
 
                     // Если в папке есть хоть один объект который не заканчивается на '/' значит в папке ест файлы
                     if (!objectName.endsWith("/")) {
+                        log.info("Путь: {} был определен как дирктория", normalizedNewPath + '/');
                         isDirectory = true;
                     }
                 } catch (Exception e) {
-                    log.warn("Путь {} не является папкой: -> {}",oldPath ,e.getMessage());
+                    log.warn("Путь '{}' не является папкой: -> {}",oldPath ,e.getMessage());
                 }
 
             }
         }
 
-            if (!isFile && !isDirectory) {
+        if (!isFile && !isDirectory) {
                 log.warn("Ресурс не найден");
                 throw new PathNotFoundException("ресурс не найден: " + oldPath);
             }
 
+
         if (isFile) {
-            FileAction action = detectFileAction(normalizedOldPath, normalizedNewPath);
-
-            switch (action) {
-                case MOVE -> isMove = true;
-                case RENAME -> isRename = true;
-                case NONE -> throw new PathNotFoundException("Путь не изменился");
-            }
-        }
-
-        if (isDirectory){
-            FileAction action = detectFileAction(oldPath, newPath);
-            switch (action) {
-                case MOVE -> isMove = true;
-                case RENAME -> isRename = true;
-                case NONE -> throw new PathNotFoundException("Путь не изменился");
+            try {
+                minioClient.statObject(StatObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(normalizedNewPath)
+                        .build());
+                throw new ResourceAlreadyExistsException(normalizedNewPath);
+            } catch (ResourceAlreadyExistsException e) {
+                log.warn("Файл, лежащий по пути '{}' уже существует",normalizedNewPath);
+                throw e;
+            }catch (Exception e) {
+                log.info("Провальная проверка на файл, скорее всего это директория!");
             }
         }
 
             // переименование файла
-            if (isFile && isRename) {
+            if (isFile) {
+                log.info("Попытка переименовать файл");
                 try {
-                    minioClient.copyObject(CopyObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(normalizedNewPath)
-                                    .source(
-                                            CopySource.builder()
-                                                    .bucket(bucketName)
-                                                    .object(normalizedOldPath)
-                                                    .build())
-                            .build());
+                    synchronized (fileSystemOperationLock) {
+                        minioClient.copyObject(CopyObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(normalizedNewPath)
+                                .source(
+                                        CopySource.builder()
+                                                .bucket(bucketName)
+                                                .object(normalizedOldPath)
+                                                .build())
+                                .build());
+                        log.info("Файл успешно скопирован");
 
-                    minioClient.removeObject(RemoveObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(normalizedOldPath)
-                            .build());
-
+                        minioClient.removeObject(RemoveObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(normalizedOldPath)
+                                .build());
+                        log.info("Старый файл успешно удален");
+                        log.info("Переименование файла прошло успешно");
+                    }
                 } catch (Exception e) {
-                    // todo
-                }
-            }
-            // перемещение файла
-            if (isFile && isMove) {
-                try {
-                    minioClient.copyObject(CopyObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(normalizedNewPath + '/' + normalizedOldPath.substring(normalizedOldPath.indexOf('/')))
-                                    .source(
-                                            CopySource.builder()
-                                                    .bucket(bucketName)
-                                                    .object(normalizedOldPath)
-                                                    .build())
-                            .build());
-
-                    minioClient.removeObject(RemoveObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(normalizedOldPath)
-                            .build());
-
-                } catch (Exception e) {
-                    throw new PathNotFoundException("ресурс не найден");
+                    throw new MinioNotFoundException(String.format("Во время переименования файла произошла ошибка: %s", e.getMessage()));
                 }
             }
 
@@ -468,75 +417,45 @@ public class StorageServiceImpl implements StorageService {
                 } catch (Exception e) {
                     continue;
                 }
+
                 try {
-                    // кладем в новую папку файлы из старой
-                    if (isMove) {
-                        int i = normalizedOldPath.lastIndexOf('/');
-                        String aaa = normalizedNewPath  + normalizedOldPath.substring(i) + '/';
+                    synchronized (fileSystemOperationLock) {
+                        // Формируем новый путь для объекта
+                        String relativePath = item.objectName().substring(normalizedOldPath.length() + 1);
+                        String newObjectPath = normalizedNewPath + '/' + relativePath;
+
+                        // Копируем объект в новый путь
                         minioClient.copyObject(CopyObjectArgs.builder()
                                 .bucket(bucketName)
-                                .object(aaa + item.objectName().substring(normalizedOldPath.length() + 1))
-                                .source(CopySource.builder()
-                                        .bucket(bucketName)
-                                        .object(item.objectName()) // откуда копируем
-                                        .build())
-                                .build());
-                    } else if (isRename) {
-                        minioClient.copyObject(CopyObjectArgs.builder()
-                                .bucket(bucketName)
-                                .object(normalizedNewPath + item.objectName().substring(normalizedOldPath.length()))
+                                .object(newObjectPath)
                                 .source(CopySource.builder()
                                         .bucket(bucketName)
                                         .object(item.objectName())
                                         .build())
                                 .build());
-                    }
+                        log.info("Объект успешно скопирован: {}", newObjectPath);
 
-                    minioClient.removeObject(RemoveObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(item.objectName())
-                            .build());
+                        // Удаляем старый объект
+                        minioClient.removeObject(RemoveObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(item.objectName())
+                                .build());
+                        log.info("Старый объект успешно удален: {}", item.objectName());
+                    }
                 } catch (Exception e) {
-                    throw new PathNotFoundException("ресурс не найден");
+                    throw new MinioNotFoundException(String.format("Ошибка при обработке директории: %s", e.getMessage()));
                 }
             }
         }
 
         if (isDirectory) {
-            String path = normalizedNewPath.substring(0,normalizedNewPath.lastIndexOf("/") + 1);
+            String path = normalizedNewPath.substring(0,normalizedNewPath.lastIndexOf("/"));
             String name = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/'));
             return new ResourceInfoResponse(path,name, "DIRECTORY");
         }
-
-
+        log.warn("Невалидный или отсутствующий путь {}, {}", oldPath, newPath);
         throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
     }
-
-    private FileAction detectFileAction(String oldPath, String newPath) {
-        String[] oldParts = oldPath.split("/");
-        String[] newParts = newPath.split("/");
-
-        if (oldParts.length == 0 || newParts.length == 0) {
-            return FileAction.NONE;
-        }
-
-        // Сравниваем родительские директории
-        String oldParent = String.join("/", Arrays.copyOf(oldParts, oldParts.length - 1));
-        String newParent = String.join("/", Arrays.copyOf(newParts, newParts.length - 1));
-
-        String oldName = oldParts[oldParts.length - 1];
-        String newName = newParts[newParts.length - 1];
-
-        if (!oldParent.equals(newParent)) {
-            return FileAction.MOVE;
-        } else if (!oldName.equals(newName)) {
-            return FileAction.RENAME;
-        } else {
-            return FileAction.NONE;
-        }
-    }
-
-
 
 
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
