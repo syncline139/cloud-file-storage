@@ -49,21 +49,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void registerAndAuthenticateUser(UserDTO userDTO, HttpServletRequest request) {
+        log.info("Вошли в метод 'registerAndAuthenticateUser'");
 
         if (userDTO.getLogin().equals("anonymousUser")) {
             throw new SpongeBobSquarePants("Мимо челик");
         }
-
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         transactionTemplate.execute(status -> {
-        final User user = userMapper.convertToUser(userDTO);
-        log.info("Конвертация userDTO в сущность User прошла успешно");
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        log.info("Пароль пользователя был успешно захеширован");
-
-        user.setRole(Role.USER);
-        log.info("Пользователю присвоена роль USER");
+         final User user = User.createUserFromDTO(userDTO, passwordEncoder);
 
             try {
                 if (!minioClient.bucketExists(BucketExistsArgs.builder()

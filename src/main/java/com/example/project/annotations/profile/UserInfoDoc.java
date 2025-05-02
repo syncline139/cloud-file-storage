@@ -1,6 +1,6 @@
 package com.example.project.annotations.profile;
 
-import com.example.project.dto.response.UserErrorResponse;
+import com.example.project.dto.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
                 responseCode = "401",
                 description = "пользователь не авторизован",
                 content = @Content(mediaType = "application/json",
-                        schema = @Schema(implementation = UserErrorResponse.class),
+                        schema = @Schema(implementation = ErrorResponse.class),
                         examples = @ExampleObject(
                                 value = """
                                         {
@@ -49,7 +49,7 @@ import java.lang.annotation.Target;
                 description = "Внутренняя ошибка сервера",
                 content = @Content(
                         mediaType = "application/json",
-                        schema = @Schema(implementation = UserErrorResponse.class),
+                        schema = @Schema(implementation = ErrorResponse.class),
                         examples = @ExampleObject(
                                 value = """
                                         {

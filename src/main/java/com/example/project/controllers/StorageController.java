@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -54,14 +55,24 @@ public class StorageController {
      * @param from старый путь
      * @param to новый путь
      */
-    @GetMapping("move")
+    @GetMapping("/move")
     public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from, @RequestParam("to") String to) {
 
-        ResourceInfoResponse resourceInfoResponse = storageService.moverOrRename(from, to);
+        ResourceInfoResponse response = storageService.moverOrRename(from, to);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(resourceInfoResponse);
+                .body(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchResource(@RequestParam("query") String query) {
+
+        List<ResourceInfoResponse> response = storageService.searchResource(query);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
     }
 
 

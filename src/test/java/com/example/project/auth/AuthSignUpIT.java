@@ -6,6 +6,7 @@ import com.example.project.repositories.UserRepository;
 import com.example.project.test.AbstractTestContainersConnect;
 import com.example.project.utils.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.minio.MinioClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -50,6 +51,9 @@ public class AuthSignUpIT extends AbstractTestContainersConnect {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private MinioClient minioClient;
+
 
     @AfterEach
     void tearDown() {
@@ -58,7 +62,7 @@ public class AuthSignUpIT extends AbstractTestContainersConnect {
 
     @Test
     void shouldSignUpUserSuccessfully() throws Exception {
-        UserDTO userDTO = new UserDTO("luntik", "qwerty");
+        UserDTO userDTO = new UserDTO("uhasdfhuiasdfhjgkasdfhjkg", "qwerty");
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-up")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -74,9 +78,9 @@ public class AuthSignUpIT extends AbstractTestContainersConnect {
         assertThat(passwordEncoder.matches(userDTO.getPassword(), savedUser.get().getPassword())).isTrue();
 
         SecurityContext securityContext = securityContext(result);
-
         assertThat(securityContext).isNotNull();
         assertThat(securityContext.getAuthentication().getName()).isEqualTo(userDTO.getLogin());
+
     }
 
     @Test

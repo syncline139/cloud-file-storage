@@ -1,6 +1,6 @@
 package com.example.project.exceptions;
 
-import com.example.project.dto.response.UserErrorResponse;
+import com.example.project.dto.response.ErrorResponse;
 import com.example.project.exceptions.auth.*;
 import com.example.project.exceptions.storage.MissingOrInvalidPathException;
 import com.example.project.exceptions.storage.PathNotFoundException;
@@ -8,7 +8,6 @@ import com.example.project.exceptions.storage.ResourceAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,10 +21,10 @@ public class GlobalExceptionHandler {
 
     // ошибки валидации (пример - слишком короткий login)
     @ExceptionHandler(UserNotValidationException.class)
-    public ResponseEntity<UserErrorResponse> handleException(UserNotValidationException e) {
+    public ResponseEntity<ErrorResponse> handleException(UserNotValidationException e) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -36,10 +35,10 @@ public class GlobalExceptionHandler {
 
     // login занят
     @ExceptionHandler(UniqueLoginException.class)
-    public ResponseEntity<UserErrorResponse> handleException(UniqueLoginException e) {
+    public ResponseEntity<ErrorResponse> handleException(UniqueLoginException e) {
         HttpStatus status = HttpStatus.CONFLICT;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -50,10 +49,10 @@ public class GlobalExceptionHandler {
 
     // неизвестная ошибка
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<UserErrorResponse> handleException(Exception e) {
+    public ResponseEntity<ErrorResponse> handleException(Exception e) {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -64,10 +63,10 @@ public class GlobalExceptionHandler {
 
     // пользователь не авторизован
     @ExceptionHandler(LoginExistenceException.class)
-    public ResponseEntity<UserErrorResponse> handleException(LoginExistenceException e) {
+    public ResponseEntity<ErrorResponse> handleException(LoginExistenceException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -77,10 +76,10 @@ public class GlobalExceptionHandler {
 
     // Неверные данные при аутентификации
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<UserErrorResponse> handleException(BadCredentialsException e) {
+    public ResponseEntity<ErrorResponse> handleException(BadCredentialsException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                  "Неверный логин или пароль",
                 status.value(),
                 System.currentTimeMillis()
@@ -90,10 +89,10 @@ public class GlobalExceptionHandler {
 
     //Пользователь не авторизирован
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
-    public ResponseEntity<UserErrorResponse> handleException(AuthenticationCredentialsNotFoundException e) {
+    public ResponseEntity<ErrorResponse> handleException(AuthenticationCredentialsNotFoundException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -102,11 +101,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(PathNotFoundException.class)
-    public ResponseEntity<UserErrorResponse> handlePathNotFound(PathNotFoundException e) {
+    public ResponseEntity<ErrorResponse> handlePathNotFound(PathNotFoundException e) {
 
         HttpStatus status = HttpStatus.NOT_FOUND;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -115,9 +114,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(SpongeBobSquarePants.class)
-    public ResponseEntity<UserErrorResponse> handleException(SpongeBobSquarePants e) {
+    public ResponseEntity<ErrorResponse> handleException(SpongeBobSquarePants e) {
         HttpStatus status = HttpStatus.I_AM_A_TEAPOT;
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -126,9 +125,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MissingOrInvalidPathException.class)
-    public ResponseEntity<UserErrorResponse> handleException(MissingOrInvalidPathException e) {
+    public ResponseEntity<ErrorResponse> handleException(MissingOrInvalidPathException e) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()
@@ -137,10 +136,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceAlreadyExistsException.class)
-    public ResponseEntity<UserErrorResponse> handleException(ResourceAlreadyExistsException e) {
+    public ResponseEntity<ErrorResponse> handleException(ResourceAlreadyExistsException e) {
         HttpStatus status = HttpStatus.CONFLICT;
 
-        UserErrorResponse response = new UserErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 e.getMessage(),
                 status.value(),
                 System.currentTimeMillis()

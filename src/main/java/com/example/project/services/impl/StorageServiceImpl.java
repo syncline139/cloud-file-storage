@@ -5,11 +5,13 @@ import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundExce
 import com.example.project.exceptions.storage.*;
 import com.example.project.services.StorageService;
 import com.example.project.utils.FileAction;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,8 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -31,8 +33,9 @@ import java.util.zip.ZipOutputStream;
 public class StorageServiceImpl implements StorageService {
 
     private final MinioClient minioClient;
+    private final ObjectMapper objectMapper;
     private final Object fileSystemOperationLock = new Object();
-
+    private final ListableBeanFactory listableBeanFactory;
 
 
     /**
@@ -470,6 +473,64 @@ public class StorageServiceImpl implements StorageService {
         throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
     }
 
+    @Override
+    public List<ResourceInfoResponse> searchResource(String query) {
+        log.info("Вошли в метод 'searchResource'");
+        String bucketName = activeUserName();
+
+        String normalizedQuery = query.replaceAll("^/+|/+$", "");
+
+        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(bucketName)
+                .recursive(true)
+                .build());
+
+        HashMap<String, Item> dirs = new HashMap<>();
+        HashMap<String, Item> files = new HashMap<>();
+
+        for (Result<Item> r : results) {
+            Item item = null;
+            String objectName = "";
+            try {
+                item = r.get();
+                objectName = item.objectName();
+            } catch (Exception e) {
+                //todo
+            }
+            if (objectName.contains(normalizedQuery)) {
+                if (objectName.endsWith("/")) {
+                    dirs.put(objectName, item);
+                } else {
+                    files.put(objectName, item);
+                }
+            }
+
+        }
+
+        List<ResourceInfoResponse> responseList = new ArrayList<>();
+
+        for (Map.Entry<String, Item> entry : dirs.entrySet()) {
+            Item item = entry.getValue();
+            String fullPath = item.objectName();
+            String trimmed = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
+            String name = trimmed.substring(trimmed.lastIndexOf('/') + 1);
+            responseList.add(new ResourceInfoResponse(fullPath, name,"DIRECTORY"));
+        }
+        for (Map.Entry<String, Item> entry : files.entrySet()) {
+            Item item = entry.getValue();
+            String fullPath = item.objectName();
+            String name = item.objectName().substring(item.objectName().lastIndexOf('/') + 1);
+            Long size = item.size();
+            responseList.add(new ResourceInfoResponse(fullPath, name,size,"FILE"));
+        }
+
+        if (responseList.isEmpty()) {
+            log.warn("Невалидный или отсутствующий поисковый запрос");
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий поисковый запрос");
+        }
+        log.info("Ресурс найден");
+        return responseList;
+    }
 
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
         ZipEntry zipEntry = new ZipEntry(relativePath);

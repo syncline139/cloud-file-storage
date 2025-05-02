@@ -1,5 +1,6 @@
 package com.example.project.entity;
 
+import com.example.project.dto.request.UserDTO;
 import com.example.project.utils.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
@@ -11,13 +12,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.modelmapper.internal.bytebuddy.implementation.bind.annotation.Empty;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -53,4 +54,13 @@ public class User {
         this.password = password;
         this.role = role;
     }
+
+    public static User createUserFromDTO(UserDTO dto, PasswordEncoder encoder) {
+        return new User(
+                dto.getLogin(),
+                encoder.encode(dto.getPassword()),
+                Role.USER
+        );
+    }
+
 }

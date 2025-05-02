@@ -1,7 +1,7 @@
 package com.example.project.annotations.auth;
 
 
-import com.example.project.dto.response.UserErrorResponse;
+import com.example.project.dto.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -35,7 +35,7 @@ import java.lang.annotation.Target;
                         description = "Ошибки валидации (пример - слишком короткий username)",
                         content = @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = UserErrorResponse.class),
+                                schema = @Schema(implementation = ErrorResponse.class),
                                 examples = @ExampleObject(
                                         value = """
                                         {
@@ -52,7 +52,7 @@ import java.lang.annotation.Target;
                         description = "Неверные данные (такого пользователя нет, или пароль неправильный)",
                         content = @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = UserErrorResponse.class),
+                                schema = @Schema(implementation = ErrorResponse.class),
                                 examples = @ExampleObject(
                                         value = """
                                         {
@@ -69,7 +69,7 @@ import java.lang.annotation.Target;
                         description = "Внутренняя ошибка сервера",
                         content = @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = UserErrorResponse.class),
+                                schema = @Schema(implementation = ErrorResponse.class),
                                 examples = @ExampleObject(
                                         value = """
                                         {

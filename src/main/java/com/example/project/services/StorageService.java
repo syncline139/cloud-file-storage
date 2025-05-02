@@ -3,6 +3,8 @@ package com.example.project.services;
 import com.example.project.dto.response.ResourceInfoResponse;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.util.List;
+
 public interface StorageService {
 
     ResourceInfoResponse resourceInfo(String path);
@@ -12,5 +14,7 @@ public interface StorageService {
     void downloadResource(String path, HttpServletResponse response);
 
     ResourceInfoResponse moverOrRename(String from, String to);
+
+    List<ResourceInfoResponse> searchResource(String query);
 
 }
