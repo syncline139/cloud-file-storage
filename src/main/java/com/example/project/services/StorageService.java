@@ -22,4 +22,5 @@ public interface StorageService {
 
     List<ResourceInfoResponse> directoryContents(String path);
 
+    ResourceInfoResponse createEmptyFolder(String path);
 }

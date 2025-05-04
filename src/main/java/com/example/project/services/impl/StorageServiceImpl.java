@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -601,6 +602,42 @@ public class StorageServiceImpl implements StorageService {
         }
 
         return infoResponseList;
+    }
+
+    @Override
+    public ResourceInfoResponse createEmptyFolder(String path) {
+
+        String bucketName = activeUserName();
+        bucketExists(bucketName);
+
+        String normalizdPath ="";
+        if (!path.isEmpty()) {
+             normalizdPath = path.replaceAll("^/+|/+$", "");
+        }
+
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizdPath)
+                    .build());
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь к новой папке");
+        } catch (Exception e) {
+            //
+        }
+
+        try {
+            minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizdPath + "/")
+                    .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                    .build());
+        } catch (Exception e) {
+            //
+        }
+
+        String p = normalizdPath;
+        String name = normalizdPath;
+        return new ResourceInfoResponse(p,name,"DIRECTORY");
     }
 
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {

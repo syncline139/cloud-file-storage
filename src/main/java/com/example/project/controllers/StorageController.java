@@ -97,6 +97,16 @@ public class StorageController {
                 .body(response);
     }
 
+    @PostMapping("/directory")
+    public ResponseEntity<?> createEmptyFolder(@RequestParam("path") String path) {
+
+        ResourceInfoResponse response = storageService.createEmptyFolder(path);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
 
 }
 
