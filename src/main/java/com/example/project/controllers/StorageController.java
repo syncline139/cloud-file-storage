@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -40,10 +41,22 @@ public class StorageController {
                 .body(null);
     }
 
+
+    @PostMapping()
+    public ResponseEntity<?> uploadResource(@RequestParam("path") String path,
+                                            @RequestParam("resource") MultipartFile resource) {
+
+        ResourceInfoResponse response = storageService.uploadResource(path,resource);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
     @GetMapping("/download")
     public ResponseEntity<HttpStatus> downloadResource(@RequestParam("path") String path, HttpServletResponse response) {
 
-        storageService.downloadResource(path,response);
+        storageService.downloadResource(path, response);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -51,9 +64,8 @@ public class StorageController {
     }
 
     /**
-     *
      * @param from старый путь
-     * @param to новый путь
+     * @param to   новый путь
      */
     @GetMapping("/move")
     public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from, @RequestParam("to") String to) {
@@ -74,7 +86,6 @@ public class StorageController {
                 .status(HttpStatus.OK)
                 .body(response);
     }
-
 
 }
 

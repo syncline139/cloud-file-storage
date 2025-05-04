@@ -4,24 +4,23 @@ import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.*;
 import com.example.project.services.StorageService;
-import com.example.project.utils.FileAction;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -33,9 +32,7 @@ import java.util.zip.ZipOutputStream;
 public class StorageServiceImpl implements StorageService {
 
     private final MinioClient minioClient;
-    private final ObjectMapper objectMapper;
     private final Object fileSystemOperationLock = new Object();
-    private final ListableBeanFactory listableBeanFactory;
 
 
     /**
@@ -295,7 +292,7 @@ public class StorageServiceImpl implements StorageService {
             }
         } catch (Exception e) {
             log.error("Ошибка при скачивании ресурса по пути {}: {}", normalizedPath, e.getMessage());
-            throw new MinioNotFoundException("Ошибка при скачивании из MinIO: " + e.getMessage());
+            throw new MinioNotFoundException("Ошибка при скачивании из MinIO: " + e.getMessage(), e);
         }
     }
 
@@ -410,7 +407,7 @@ public class StorageServiceImpl implements StorageService {
                         log.info("Переименование файла прошло успешно");
                     }
                 } catch (Exception e) {
-                    throw new MinioNotFoundException(String.format("Во время переименования файла произошла ошибка: %s", e.getMessage()));
+                    throw new MinioNotFoundException(String.format("Во время переименования файла произошла ошибка: %s", e.getMessage()),e);
                 }
             }
 
@@ -459,7 +456,7 @@ public class StorageServiceImpl implements StorageService {
                         log.info("Старый объект успешно удален: {}", item.objectName());
                     }
                 } catch (Exception e) {
-                    throw new MinioNotFoundException(String.format("Ошибка при обработке директории: %s", e.getMessage()));
+                    throw new MinioNotFoundException(String.format("Ошибка при обработке директории: %s", e.getMessage()),e);
                 }
             }
         }
@@ -477,6 +474,7 @@ public class StorageServiceImpl implements StorageService {
     public List<ResourceInfoResponse> searchResource(String query) {
         log.info("Вошли в метод 'searchResource'");
         String bucketName = activeUserName();
+        bucketExists(bucketName);
 
         String normalizedQuery = query.replaceAll("^/+|/+$", "");
 
@@ -489,13 +487,13 @@ public class StorageServiceImpl implements StorageService {
         HashMap<String, Item> files = new HashMap<>();
 
         for (Result<Item> r : results) {
-            Item item = null;
-            String objectName = "";
+            Item item;
+            String objectName;
             try {
                 item = r.get();
                 objectName = item.objectName();
             } catch (Exception e) {
-                //todo
+                continue;
             }
             if (objectName.contains(normalizedQuery)) {
                 if (objectName.endsWith("/")) {
@@ -531,6 +529,35 @@ public class StorageServiceImpl implements StorageService {
         log.info("Ресурс найден");
         return responseList;
     }
+
+
+    @Override
+    public ResourceInfoResponse uploadResource(String path, MultipartFile resource){
+        log.info("Вошли в метод 'uploadResource'");
+        String bucketName = activeUserName();
+        bucketExists(bucketName);
+
+        String normalizedPath = "";
+
+        if (!path.isEmpty()) {
+            normalizedPath = path.replaceAll("^/+|/+$", "");
+            normalizedPath = normalizedPath + "/";
+        }
+
+        try {
+            minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizedPath + resource.getOriginalFilename())
+                    .stream(resource.getInputStream(), resource.getSize(), -1)
+                    .contentType(resource.getContentType())
+                    .build());
+        } catch (Exception e) {
+            throw new MinioNotFoundException("Ошибка при загрузке файла в MinIO", e);
+        }
+
+        return new ResourceInfoResponse(normalizedPath, resource.getOriginalFilename(), resource.getSize(), "FILE");
+    }
+
 
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
         ZipEntry zipEntry = new ZipEntry(relativePath);

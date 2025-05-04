@@ -41,7 +41,7 @@ services:
       - "5433:5432"
 
   adminer:
-    image: adminer:5.1.0
+    image: adminer:latest
     container_name: adminer
     ports:
       - "5050:8080"
