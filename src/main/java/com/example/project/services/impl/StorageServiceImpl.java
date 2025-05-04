@@ -559,6 +559,50 @@ public class StorageServiceImpl implements StorageService {
     }
 
 
+    @Override
+    public List<ResourceInfoResponse> directoryContents(String path) {
+
+        String bucketName = activeUserName();
+        bucketExists(bucketName);
+
+        String normalizdPath = path.replaceAll("^/+|/+$", "");
+
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizdPath)
+                    .build());
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
+        } catch (Exception e) {
+            //
+        }
+
+        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(bucketName)
+                .prefix(normalizdPath + "/")
+                .recursive(false)
+                .build());
+
+        List<ResourceInfoResponse> infoResponseList = new ArrayList<>();
+
+        for (Result<Item> r : results) {
+            Item item;
+            try {
+                item = r.get();
+
+            } catch (Exception e) {
+                continue;
+            }
+
+            String name = item.objectName().substring(item.objectName().lastIndexOf("/") + 1);
+
+
+            infoResponseList.add(new ResourceInfoResponse(normalizdPath + "/", name, item.size(), "FILE"));
+        }
+
+        return infoResponseList;
+    }
+
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
         ZipEntry zipEntry = new ZipEntry(relativePath);
         zipOut.putNextEntry(zipEntry);

@@ -17,12 +17,12 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/resource")
+@RequestMapping("/api")
 public class StorageController {
 
     private final StorageService storageService;
 
-    @GetMapping
+    @GetMapping("/resource")
     public ResponseEntity<?> resourceInfo(@RequestParam("path") String path) {
 
 
@@ -31,7 +31,7 @@ public class StorageController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/resource")
     public ResponseEntity<HttpStatus> removeResource(@RequestParam("path") String path) {
 
         storageService.removeResource(path);
@@ -42,7 +42,7 @@ public class StorageController {
     }
 
 
-    @PostMapping()
+    @PostMapping("/resource")
     public ResponseEntity<?> uploadResource(@RequestParam("path") String path,
                                             @RequestParam("resource") MultipartFile resource) {
 
@@ -53,7 +53,7 @@ public class StorageController {
                 .body(response);
     }
 
-    @GetMapping("/download")
+    @GetMapping("/resource/download")
     public ResponseEntity<HttpStatus> downloadResource(@RequestParam("path") String path, HttpServletResponse response) {
 
         storageService.downloadResource(path, response);
@@ -67,7 +67,7 @@ public class StorageController {
      * @param from старый путь
      * @param to   новый путь
      */
-    @GetMapping("/move")
+    @GetMapping("/resource/move")
     public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from, @RequestParam("to") String to) {
 
         ResourceInfoResponse response = storageService.moverOrRename(from, to);
@@ -77,7 +77,7 @@ public class StorageController {
                 .body(response);
     }
 
-    @GetMapping("/search")
+    @GetMapping("/resource/search")
     public ResponseEntity<?> searchResource(@RequestParam("query") String query) {
 
         List<ResourceInfoResponse> response = storageService.searchResource(query);
@@ -86,6 +86,17 @@ public class StorageController {
                 .status(HttpStatus.OK)
                 .body(response);
     }
+
+    @GetMapping("/directory")
+    public ResponseEntity<?> directoryContents(@RequestParam("path") String path) {
+
+        List<ResourceInfoResponse> response = storageService.directoryContents(path);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
+    }
+
 
 }
 

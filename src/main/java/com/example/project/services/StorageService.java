@@ -20,4 +20,6 @@ public interface StorageService {
 
     ResourceInfoResponse uploadResource(String path,MultipartFile resource);
 
+    List<ResourceInfoResponse> directoryContents(String path);
+
 }
