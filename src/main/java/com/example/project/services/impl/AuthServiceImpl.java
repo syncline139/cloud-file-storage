@@ -42,7 +42,6 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
-    private final UserMapper userMapper;
     private final TransactionTemplate transactionTemplate;
     private final MinioClient minioClient;
 
@@ -51,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
     public void registerAndAuthenticateUser(UserDTO userDTO, HttpServletRequest request) {
         log.info("Вошли в метод 'registerAndAuthenticateUser'");
 
-        if (userDTO.getLogin().equals("anonymousUser")) {
+        if (userDTO.getUsername().equals("anonymousUser")) {
             throw new SpongeBobSquarePants("Мимо челик");
         }
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -61,19 +60,19 @@ public class AuthServiceImpl implements AuthService {
 
             try {
                 if (!minioClient.bucketExists(BucketExistsArgs.builder()
-                        .bucket(user.getLogin())
+                        .bucket(user.getUsername())
                         .build())) {
                     userRepository.save(user);
                     minioClient.makeBucket(MakeBucketArgs.builder()
-                            .bucket(user.getLogin())
+                            .bucket(user.getUsername())
                             .build());
-                    log.info("Пользователь '{}' сохранён в базу данных", user.getLogin());
-                    log.info("Бакет с названием '{}' успешно создан", user.getLogin());
+                    log.info("Пользователь '{}' сохранён в базу данных", user.getUsername());
+                    log.info("Бакет с названием '{}' успешно создан", user.getUsername());
                 } else {
-                    log.info("Бакет с названием '{}' уже существует", user.getLogin());
+                    log.info("Бакет с названием '{}' уже существует", user.getUsername());
                 }
             } catch (Exception e) {
-                log.error("Не удалось создать бакет для пользователя '{}': {}", user.getLogin(), e.getMessage());
+                log.error("Не удалось создать бакет для пользователя '{}': {}", user.getUsername(), e.getMessage());
                 throw new BucketNotFoundException("Не удалось создать бакет для нового пользователя");
             }
 
@@ -116,11 +115,11 @@ public class AuthServiceImpl implements AuthService {
     private void setupAuthenticationAndSession(UserDTO userDTO, HttpServletRequest request) {
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                userDTO.getLogin(), userDTO.getPassword());
+                userDTO.getUsername(), userDTO.getPassword());
 
         Authentication authenticationUser = authenticationManager.authenticate(authentication);
 
-        log.info("Аутентификация пользователя '{}' прошла успешно", userDTO.getLogin());
+        log.info("Аутентификация пользователя '{}' прошла успешно", userDTO.getUsername());
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authenticationUser);
@@ -129,6 +128,6 @@ public class AuthServiceImpl implements AuthService {
 
         HttpSession session = request.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-        log.info("Сессия для пользователя '{}' была успешно создана", userDTO.getLogin());
+        log.info("Сессия для пользователя '{}' была успешно создана", userDTO.getUsername());
     }
 }

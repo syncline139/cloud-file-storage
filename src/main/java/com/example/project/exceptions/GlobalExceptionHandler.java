@@ -34,8 +34,8 @@ public class GlobalExceptionHandler {
     }
 
     // login занят
-    @ExceptionHandler(UniqueLoginException.class)
-    public ResponseEntity<ErrorResponse> handleException(UniqueLoginException e) {
+    @ExceptionHandler(UniqueUsernameException.class)
+    public ResponseEntity<ErrorResponse> handleException(UniqueUsernameException e) {
         HttpStatus status = HttpStatus.CONFLICT;
 
         ErrorResponse response = new ErrorResponse(
@@ -62,8 +62,8 @@ public class GlobalExceptionHandler {
     }
 
     // пользователь не авторизован
-    @ExceptionHandler(LoginExistenceException.class)
-    public ResponseEntity<ErrorResponse> handleException(LoginExistenceException e) {
+    @ExceptionHandler(UsernameExistenceException.class)
+    public ResponseEntity<ErrorResponse> handleException(UsernameExistenceException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
         ErrorResponse response = new ErrorResponse(

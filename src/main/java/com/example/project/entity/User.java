@@ -36,8 +36,8 @@ public class User {
     @NotEmpty(message = "Логин не должен быть пустым")
     @Size(min = LOGIN_MIN_LENGTH, max = LOGIN_MAX_LENGTH, message = "Логина должен быть в диапазоне от 5 до 30 символом")
     @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Логин может содержать только буквы, цифры и подчёркивание")
-    @Column(name = "login")
-    private String login;
+    @Column(name = "username")
+    private String username;
 
     @NotEmpty(message = "Пароль не должен быть пустым")
     @Size(min = PASSWORD_MIN_LENGTH,max = PASSWORD_MAX_LENGTH,message = "Пароля должен быть в диапазоне от 6 до 50 символом")
@@ -49,15 +49,15 @@ public class User {
     @Column(name = "role")
     private Role role;
 
-    public User(String login, String password, Role role) {
-        this.login = login;
+    public User(String username, String password, Role role) {
+        this.username = username;
         this.password = password;
         this.role = role;
     }
 
     public static User createUserFromDTO(UserDTO dto, PasswordEncoder encoder) {
         return new User(
-                dto.getLogin(),
+                dto.getUsername(),
                 encoder.encode(dto.getPassword()),
                 Role.USER
         );

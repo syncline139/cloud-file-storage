@@ -3,8 +3,8 @@ package com.example.project.exceptions.auth;
 /**
  * Исключение выбрасывается если пользователь пытается залогинится под неверными данными
  */
-public class LoginExistenceException extends RuntimeException {
-    public LoginExistenceException(String message) {
+public class UsernameExistenceException extends RuntimeException {
+    public UsernameExistenceException(String message) {
         super(message);
     }
 }

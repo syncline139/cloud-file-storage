@@ -42,7 +42,7 @@ public class AuthController {
 
             return ResponseEntity
                 .status(HttpStatus.CREATED) // 201
-                .body(Map.of("login", userDTO.getLogin()));
+                .body(Map.of("username", userDTO.getUsername()));
     }
 
 
@@ -52,14 +52,14 @@ public class AuthController {
 
         authValidation.bindingResultErrors(bindingResult);
 
-        authValidation.loginExistenceErrors(userDTO);
+        authValidation.usernameExistenceErrors(userDTO);
 
 
         authService.authenticate(userDTO,request);
 
         return ResponseEntity
                 .status(HttpStatus.OK)  // 200
-                .body(Map.of("login", userDTO.getLogin()));
+                .body(Map.of("username", userDTO.getUsername()));
     }
 
     @UserSignOutDoc

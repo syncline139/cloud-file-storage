@@ -2,7 +2,7 @@ package com.example.project.services.impl;
 
 
 import com.example.project.entity.User;
-import com.example.project.exceptions.auth.UniqueLoginException;
+import com.example.project.exceptions.auth.UniqueUsernameException;
 import com.example.project.repositories.UserRepository;
 import com.example.project.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +26,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetailsImpl loadUserByUsername(String login) throws UsernameNotFoundException {
 
-      final  Optional<User> maybeUser = userRepository.findByLogin(login);
+      final  Optional<User> maybeUser = userRepository.findByUsername(login);
 
        log.info("Попытка найти пользователя с логином '{}'",login);
 
         if (maybeUser.isEmpty()) {
             log.warn("Не удалось найти пользователя с логином '{}' ", login);
-            throw new UniqueLoginException(String.format("Пользотваль с логином: '%s' не найден", login));
+            throw new UniqueUsernameException(String.format("Пользотваль с логином: '%s' не найден", login));
         }
         log.info("Пользователя с логином '{}' найден",login);
         return new UserDetailsImpl(maybeUser.get());

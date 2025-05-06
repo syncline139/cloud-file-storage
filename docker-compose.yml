@@ -22,6 +22,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    networks:
+      - cloud_network
 
   db:
     image: postgres:17.4
@@ -39,6 +41,8 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    networks:
+      - cloud_network
 
   adminer:
     image: adminer:latest
@@ -48,6 +52,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - cloud_network
 
   minio:
     image: minio/minio:latest
@@ -67,7 +73,12 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    networks:
+      - cloud_network
 
 volumes:
   db-data:
   minio-storage:
+networks:
+  cloud_network:
+    driver: bridge

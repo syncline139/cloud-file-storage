@@ -25,7 +25,6 @@ public class StorageController {
     @GetMapping("/resource")
     public ResponseEntity<?> resourceInfo(@RequestParam("path") String path) {
 
-
         ResourceInfoResponse response = storageService.resourceInfo(path);
 
         return ResponseEntity.ok(response);

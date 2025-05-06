@@ -7,7 +7,7 @@ public interface AuthValidation {
 
     void bindingResultErrors(BindingResult bindingResult);
 
-    void loginExistenceErrors(UserDTO userDTO);
+    void usernameExistenceErrors(UserDTO userDTO);
 
     void uniqueLoginErrors(UserDTO userDTO);
 }

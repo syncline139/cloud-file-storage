@@ -27,6 +27,6 @@ public class UserController {
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(Map.of("login",user.getUsername()));
+                .body(Map.of("username",user.getUsername()));
     }
 }

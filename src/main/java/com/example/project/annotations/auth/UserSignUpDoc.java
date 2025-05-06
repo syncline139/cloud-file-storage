@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
                 responseCode = "201",
                 description = "Пользователь успешно зарегистрирован",
                 content = @Content(mediaType = "application/json",
-                        schema = @Schema(example = "{\"login\": \"user_1\"}")
+                        schema = @Schema(example = "{\"username\": \"user_1\"}")
                 )
         ),
         @ApiResponse(

@@ -2,8 +2,8 @@ package com.example.project.validations.impl;
 
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
-import com.example.project.exceptions.auth.LoginExistenceException;
-import com.example.project.exceptions.auth.UniqueLoginException;
+import com.example.project.exceptions.auth.UsernameExistenceException;
+import com.example.project.exceptions.auth.UniqueUsernameException;
 import com.example.project.exceptions.auth.UserNotValidationException;
 import com.example.project.repositories.UserRepository;
 import com.example.project.validations.AuthValidation;
@@ -43,22 +43,22 @@ public class AuthValidationImpl implements AuthValidation {
     }
 
     @Override
-    public void loginExistenceErrors(UserDTO userDTO) {
-        final Optional<User> user = userRepository.findByLogin(userDTO.getLogin());
+    public void usernameExistenceErrors(UserDTO userDTO) {
+        final Optional<User> user = userRepository.findByUsername(userDTO.getUsername());
         if (user.isEmpty()) {
-            throw new LoginExistenceException("Неверный логин или пароль");
+            throw new UsernameExistenceException("Неверный логин или пароль");
         }
     }
 
     @Override
     public void uniqueLoginErrors(UserDTO userDTO) {
 
-        if (userRepository.findByLogin(userDTO.getLogin()).isPresent()) {
-            log.warn("Логин '{}' уже занят", userDTO.getLogin());
-            throw new UniqueLoginException(String.format("Пользователь с логином '%s' уже зарегистрирован",userDTO.getLogin()));
+        if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
+            log.warn("Логин '{}' уже занят", userDTO.getUsername());
+            throw new UniqueUsernameException(String.format("Пользователь с логином '%s' уже зарегистрирован",userDTO.getUsername()));
         }
 
-        if (userDTO.getLogin().equals("anonymousUser")) {
+        if (userDTO.getUsername().equals("anonymousUser")) {
             log.warn("Мимо челик");
         } else {
             log.info("Логин доступен для регистрации");
