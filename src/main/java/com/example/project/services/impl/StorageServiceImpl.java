@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -45,8 +46,7 @@ public class StorageServiceImpl implements StorageService {
             return new ResourceInfoResponse("", bucketName, "DIRECTORY");
         }
 
-        String normalizedPath = path.replaceAll("^/+|/+$", "");
-        log.info("Путь прошел нормализацию: {}  -->  {}",path,normalizedPath);
+        String normalizedPath = normalizedPath(path);
 
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
@@ -59,7 +59,6 @@ public class StorageServiceImpl implements StorageService {
         log.debug("Полученны объекты для пути: {}", normalizedPath);
 
         for (Result<Item> result : results)  {
-
             Item item;
             try {
                 item = result.get();
@@ -110,7 +109,7 @@ public class StorageServiceImpl implements StorageService {
             throw new MissingOrInvalidPathException(String.format("Невалидный или отсутствующий путь: %s", path)); // 400
         }
 
-        String normalizedPath = path.replaceAll("^/+|/+$", "");
+        String normalizedPath = normalizedPath(path);
 
         boolean isFile = false;
         boolean isFolderOrFileDeleted = false;
@@ -174,7 +173,6 @@ public class StorageServiceImpl implements StorageService {
         }
     }
 
-
     @Override
     public void downloadResource(String path, HttpServletResponse response) {
         log.info("Вход в метод 'downloadResource', путь: {}", path);
@@ -186,7 +184,7 @@ public class StorageServiceImpl implements StorageService {
             throw new PathNotFoundException("Невозможно скачать бакет");
         }
 
-        String normalizedPath = path.replaceAll("^/+|/+$", "");
+        String normalizedPath = normalizedPath(path);
 
         boolean isFile = false;
         boolean hasFiles = false;
@@ -215,7 +213,6 @@ public class StorageServiceImpl implements StorageService {
                 } catch (Exception e) {
                     continue;
                 }
-
                 String objectName = item.objectName();
                 if (!objectName.endsWith("/")) {
                     hasFiles = true;
@@ -229,50 +226,54 @@ public class StorageServiceImpl implements StorageService {
             throw new PathNotFoundException("ресурс не найден: " + path);
         }
 
-        response.setContentType("application/zip");
-        response.setHeader("Content-Disposition", "attachment; filename=\"archive.zip\"");
-
-        try (ZipOutputStream zipOut = new ZipOutputStream(response.getOutputStream())) {
+        try {
             if (isFile) {
-                try (InputStream fileToZip = minioClient.getObject(GetObjectArgs.builder()
+                String fileName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
+
+                response.setContentType("application/octet-stream");
+                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+                try (InputStream inputStream = minioClient.getObject(GetObjectArgs.builder()
                         .bucket(bucketName)
                         .object(normalizedPath)
-                        .build())) {
-
-                    String fileName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
-                    zip(zipOut, fileToZip, fileName);
-                }
-            } else {
-                Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                        .bucket(bucketName)
-                        .prefix(normalizedPath + "/")
-                        .recursive(true)
                         .build());
-
-                for (Result<Item> result : results) {
-                    Item item = result.get();
-                    String objectName = item.objectName();
-                    if (objectName.endsWith("/")) { // пропускаем папку
-                        continue;
-                    }
-
-                    try (InputStream fileToZip = minioClient.getObject(GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectName)
-                            .build())) {
-                        String relativePath = objectName.substring(normalizedPath.length() + 1);
-                        zip(zipOut, fileToZip, relativePath);
-
-                    }
+                     OutputStream out = response.getOutputStream()) {
+                    inputStream.transferTo(out);
                 }
-            }
-            zipOut.finish();
 
-            if (isFile) {
-                log.info("Файл по пути: '{}' успешно скачен как archive.zip", normalizedPath);
+                log.info("Файл по пути '{}' успешно скачен как '{}'", normalizedPath, fileName);
+
             } else {
-                log.info("Директория по пути: '{}' успешно скачена как archive.zip", normalizedPath);
+                response.setContentType("application/zip");
+                response.setHeader("Content-Disposition", "attachment; filename=\"archive.zip\"");
 
+                try (ZipOutputStream zipOut = new ZipOutputStream(response.getOutputStream())) {
+                    Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                            .bucket(bucketName)
+                            .prefix(normalizedPath + "/")
+                            .recursive(true)
+                            .build());
+
+                    for (Result<Item> result : results) {
+                        Item item = result.get();
+                        String objectName = item.objectName();
+                        if (objectName.endsWith("/")) {
+                            continue;
+                        }
+
+                        try (InputStream fileToZip = minioClient.getObject(GetObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(objectName)
+                                .build())) {
+
+                            String relativePath = objectName.substring(normalizedPath.length() + 1);
+                            zip(zipOut, fileToZip, relativePath);
+                        }
+                    }
+                    zipOut.finish();
+                }
+
+                log.info("Директория по пути '{}' успешно скачена как архив", normalizedPath);
             }
         } catch (Exception e) {
             log.error("Ошибка при скачивании ресурса по пути {}: {}", normalizedPath, e.getMessage());
@@ -549,15 +550,13 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = activeUserName();
         bucketExists(bucketName);
 
-        // Нормализация пути: убираем начальные и конечные слэши
-        String normalizedPath = path == null ? "" : path.replaceAll("^/+|/+$", "");
+        String normalizedPath = normalizedPath(path);
         log.debug("Нормализованный путь: {}", normalizedPath);
 
-        // Проверяем, является ли путь файлом
         try {
             minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
-                    .object(normalizedPath.isEmpty() ? "." : normalizedPath)
+                    .object(normalizedPath)
                     .build());
             log.error("Путь '{}' является файлом", path);
             throw new MissingOrInvalidPathException("Указанный путь является файлом, ожидается директория");
@@ -565,7 +564,6 @@ public class StorageServiceImpl implements StorageService {
             log.info("Путь '{}' является директорией или не существует", path);
         }
 
-        // Получаем содержимое директории
         Iterable<Result<Item>> results;
         if (normalizedPath.isEmpty()) {
             results = minioClient.listObjects(ListObjectsArgs.builder()
@@ -579,7 +577,6 @@ public class StorageServiceImpl implements StorageService {
                     .recursive(false)
                     .build());
         }
-
         List<ResourceInfoResponse> infoResponseList = new ArrayList<>();
         for (Result<Item> result : results) {
             try {
@@ -587,20 +584,21 @@ public class StorageServiceImpl implements StorageService {
                 String objectName = item.objectName();
                 String parentPath = normalizedPath.isEmpty() ? "" : normalizedPath + "/";
 
-                if (item.isDir()) {
-                    // Для директорий
-                    String name = objectName.substring(parentPath.length(), objectName.length() - 1);
-                    infoResponseList.add(new ResourceInfoResponse(parentPath, name, "DIRECTORY"));
+                if (objectName.endsWith("/")) {
+                    String name = objectName.substring(parentPath.length());
+                    if (!name.isEmpty()) {
+                        infoResponseList.add(new ResourceInfoResponse(parentPath, name, "DIRECTORY"));
+                    }
                 } else {
-                    // Для файлов
                     String name = objectName.substring(parentPath.length());
                     infoResponseList.add(new ResourceInfoResponse(parentPath, name, item.size(), "FILE"));
                 }
+
             } catch (Exception e) {
                 log.error("Ошибка при обработке объекта: {}", e.getMessage());
-                continue;
             }
         }
+
 
         log.debug("Результат: {}", infoResponseList);
         return infoResponseList;
@@ -611,10 +609,7 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = activeUserName();
         bucketExists(bucketName);
 
-        String normalizdPath ="";
-        if (!path.isEmpty()) {
-             normalizdPath = path.replaceAll("^/+|/+$", "");
-        }
+        String normalizdPath = normalizedPath(path);
 
         try {
             minioClient.statObject(StatObjectArgs.builder()
@@ -636,9 +631,9 @@ public class StorageServiceImpl implements StorageService {
             //
         }
 
-        String p = normalizdPath;
+        String finalPath = normalizdPath;
         String name = normalizdPath;
-        return new ResourceInfoResponse(p,name,"DIRECTORY");
+        return new ResourceInfoResponse(finalPath,name,"DIRECTORY");
     }
 
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
@@ -673,5 +668,11 @@ public class StorageServiceImpl implements StorageService {
             throw new AuthenticationCredentialsNotFoundException();
         }
         return authentication.getName();
+    }
+
+    private String normalizedPath(String path) {
+        String normalizedPath = path.replaceAll("^/+|/+$", "");
+        log.info("Путь прошел нормализацию: {}  -->  {}",path,normalizedPath);
+        return normalizedPath;
     }
 }
