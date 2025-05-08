@@ -517,32 +517,36 @@ public class StorageServiceImpl implements StorageService {
 
 
     @Override
-    public ResourceInfoResponse uploadResource(String path, MultipartFile resource){
+    public Set<ResourceInfoResponse> uploadResource(String path, MultipartFile[] objects){
         log.info("Вошли в метод 'uploadResource'");
         String bucketName = activeUserName();
         bucketExists(bucketName);
 
-        String normalizedPath = "";
-
-        if (!path.isEmpty()) {
-            normalizedPath = path.replaceAll("^/+|/+$", "");
-            normalizedPath = normalizedPath + "/";
+        String normalizedPath = normalizedPath(path);
+        if (!normalizedPath.isEmpty() && !normalizedPath.endsWith("/")) {
+            normalizedPath += "/";
         }
 
-        try {
-            minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(normalizedPath + resource.getOriginalFilename())
-                    .stream(resource.getInputStream(), resource.getSize(), -1)
-                    .contentType(resource.getContentType())
-                    .build());
-        } catch (Exception e) {
-            throw new MinioNotFoundException("Ошибка при загрузке файла в MinIO");
-        }
+        Set<ResourceInfoResponse> fina = new HashSet<>();
 
-        return new ResourceInfoResponse(normalizedPath, resource.getOriginalFilename(), resource.getSize(), "FILE");
+        for (MultipartFile file : objects) {
+
+            String objectName = normalizedPath + file.getOriginalFilename();
+
+            try {
+                minioClient.putObject(PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .stream(file.getInputStream(), file.getSize(), -1)
+                        .contentType(file.getContentType())
+                        .build());
+                fina.add(new ResourceInfoResponse(normalizedPath, file.getName(), file.getSize(), "FILE"));
+            } catch (Exception e) {
+                throw new MinioNotFoundException("Ошибка при загрузке файла в MinIO");
+            }
+        }
+        return fina;
     }
-
 
     @Override
     public List<ResourceInfoResponse> directoryContents(String path) {
@@ -671,8 +675,8 @@ public class StorageServiceImpl implements StorageService {
     }
 
     private String normalizedPath(String path) {
-        String normalizedPath = path.replaceAll("^/+|/+$", "");
+        String normalizedPath = path.replaceAll("^/+|/+$", "").trim();
         log.info("Путь прошел нормализацию: {}  -->  {}",path,normalizedPath);
-        return normalizedPath;
+        return !normalizedPath.isEmpty() ? normalizedPath : "";
     }
 }

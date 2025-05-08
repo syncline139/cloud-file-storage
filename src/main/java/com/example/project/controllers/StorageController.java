@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -43,13 +44,13 @@ public class StorageController {
 
     @PostMapping("/resource")
     public ResponseEntity<?> uploadResource(@RequestParam("path") String path,
-                                            @RequestParam("resource") MultipartFile resource) {
+                                            @RequestParam("object") MultipartFile[] objects) {
 
-        ResourceInfoResponse response = storageService.uploadResource(path,resource);
+        Set<ResourceInfoResponse> responses = storageService.uploadResource(path, objects);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(response);
+                .body(responses);
     }
 
     @GetMapping("/resource/download")

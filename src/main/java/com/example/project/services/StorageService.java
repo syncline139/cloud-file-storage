@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 public interface StorageService {
 
@@ -29,7 +30,7 @@ public interface StorageService {
 
     List<ResourceInfoResponse> searchResource(String query);
 
-    ResourceInfoResponse uploadResource(String path,MultipartFile resource);
+    Set<ResourceInfoResponse> uploadResource(String path, MultipartFile[] objects);
 
     List<ResourceInfoResponse> directoryContents(String path);
 
