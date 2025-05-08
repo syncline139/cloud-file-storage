@@ -1,5 +1,6 @@
 package com.example.project.services.impl;
 
+import com.example.project.dto.response.ErrorResponse;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.*;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -43,7 +45,7 @@ public class StorageServiceImpl implements StorageService {
 
         if (path == null || path.trim().isEmpty()) {
             log.warn("Путь: {} это бакет",bucketName);
-            return new ResourceInfoResponse("", bucketName, "DIRECTORY");
+            return ResourceInfoResponse.forDirectory("", bucketName);
         }
 
         String normalizedPath = normalizedPath(path);
@@ -76,7 +78,7 @@ public class StorageServiceImpl implements StorageService {
                         ? itemPath.substring(0, itemPath.lastIndexOf("/") + 1)
                         : "";
                 log.info("путь {} был определен как файл",normalizedPath);
-                return new ResourceInfoResponse(parentPath, name, item.size(), "FILE");
+                return ResourceInfoResponse.forFile(parentPath, name, item.size());
             }
 
             // папка
@@ -86,7 +88,7 @@ public class StorageServiceImpl implements StorageService {
                         ? normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1)
                         : "";
                 log.info("Путь {} был определен как папка", normalizedPath);
-                return new ResourceInfoResponse(parentPath, name, "DIRECTORY");
+                    return ResourceInfoResponse.forDirectory(parentPath, name);
             } else {
                 log.error("По пути {} ничего не было найдено",normalizedPath);
                 throw new PathNotFoundException(String.format("Ресурс не найден: '%s'", path)); // 404
@@ -398,7 +400,7 @@ public class StorageServiceImpl implements StorageService {
 
         if (isFile) {
             String nameFile = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/') + 1);
-            return new ResourceInfoResponse(normalizedNewPath,nameFile,size, "FILE");
+            return ResourceInfoResponse.forFile(normalizedNewPath,nameFile,size);
         }
 
         if (isDirectory) {
@@ -449,7 +451,7 @@ public class StorageServiceImpl implements StorageService {
         if (isDirectory) {
             String path = normalizedNewPath.substring(0,normalizedNewPath.lastIndexOf("/"));
             String name = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/'));
-            return new ResourceInfoResponse(path,name, "DIRECTORY");
+            return ResourceInfoResponse.forDirectory(path,name);
         }
         log.warn("Невалидный или отсутствующий путь {}, {}", oldPath, newPath);
         throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
@@ -497,14 +499,14 @@ public class StorageServiceImpl implements StorageService {
             String fullPath = item.objectName();
             String trimmed = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
             String name = trimmed.substring(trimmed.lastIndexOf('/') + 1);
-            responseList.add(new ResourceInfoResponse(fullPath, name,"DIRECTORY"));
+            responseList.add(ResourceInfoResponse.forDirectory(fullPath, name));
         }
         for (Map.Entry<String, Item> entry : files.entrySet()) {
             Item item = entry.getValue();
             String fullPath = item.objectName();
             String name = item.objectName().substring(item.objectName().lastIndexOf('/') + 1);
             Long size = item.size();
-            responseList.add(new ResourceInfoResponse(fullPath, name,size,"FILE"));
+            responseList.add(ResourceInfoResponse.forFile(fullPath, name,size));
         }
 
         if (responseList.isEmpty()) {
@@ -527,25 +529,43 @@ public class StorageServiceImpl implements StorageService {
             normalizedPath += "/";
         }
 
-        Set<ResourceInfoResponse> fina = new HashSet<>();
+        if (objects.length == 0){
+            log.error("Массив файлов оказался пустым");
+            throw new MissingOrInvalidPathException("Невалидное тело запроса");
+        }
+
+        Set<ResourceInfoResponse> responses = new HashSet<>();
 
         for (MultipartFile file : objects) {
 
-            String objectName = normalizedPath + file.getOriginalFilename();
+            String fullPath = normalizedPath + file.getOriginalFilename();
+
+            try {
+                minioClient.statObject(StatObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fullPath)
+                        .build());
+                throw new ResourceAlreadyExistsException("файл уже существует");
+            } catch (ResourceAlreadyExistsException e) {
+                log.error("Файл '{}' уже сущестует", file.getOriginalFilename());
+                throw new ResourceAlreadyExistsException(e.getMessage());
+            } catch (Exception e) {
+                //
+            }
 
             try {
                 minioClient.putObject(PutObjectArgs.builder()
                         .bucket(bucketName)
-                        .object(objectName)
+                        .object(fullPath)
                         .stream(file.getInputStream(), file.getSize(), -1)
                         .contentType(file.getContentType())
                         .build());
-                fina.add(new ResourceInfoResponse(normalizedPath, file.getName(), file.getSize(), "FILE"));
+                responses.add(ResourceInfoResponse.forFile(normalizedPath, file.getOriginalFilename(), file.getSize()));
             } catch (Exception e) {
-                throw new MinioNotFoundException("Ошибка при загрузке файла в MinIO");
+                log.error("Ошибка при загрузке файла в MinIO: {}", e.getMessage());
             }
         }
-        return fina;
+        return responses;
     }
 
     @Override
@@ -591,11 +611,11 @@ public class StorageServiceImpl implements StorageService {
                 if (objectName.endsWith("/")) {
                     String name = objectName.substring(parentPath.length());
                     if (!name.isEmpty()) {
-                        infoResponseList.add(new ResourceInfoResponse(parentPath, name, "DIRECTORY"));
+                        infoResponseList.add(ResourceInfoResponse.forDirectory(parentPath, name));
                     }
                 } else {
                     String name = objectName.substring(parentPath.length());
-                    infoResponseList.add(new ResourceInfoResponse(parentPath, name, item.size(), "FILE"));
+                    infoResponseList.add(ResourceInfoResponse.forFile(parentPath, name, item.size()));
                 }
 
             } catch (Exception e) {
@@ -637,7 +657,7 @@ public class StorageServiceImpl implements StorageService {
 
         String finalPath = normalizdPath;
         String name = normalizdPath;
-        return new ResourceInfoResponse(finalPath,name,"DIRECTORY");
+        return ResourceInfoResponse.forDirectory(finalPath,name);
     }
 
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
