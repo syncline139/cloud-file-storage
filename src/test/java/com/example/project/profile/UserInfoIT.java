@@ -3,7 +3,7 @@ package com.example.project.profile;
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
 import com.example.project.repositories.UserRepository;
-import com.example.project.test.AbstractTestContainersConnect;
+import com.example.project.config.TestBeans;
 import com.example.project.utils.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Tag;
@@ -19,11 +19,9 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 
 import static org.assertj.core.api.Assertions.*;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -33,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 @Tag("profile")
-public class userInfoIT extends AbstractTestContainersConnect {
+public class UserInfoIT extends TestBeans {
 
     @Autowired
     private MockMvc mockMvc;
@@ -53,23 +51,23 @@ public class userInfoIT extends AbstractTestContainersConnect {
     void shouldSuccessfullyRetrieveUserDetailsWhenAuthenticated() throws Exception {
 
         UserDTO userDTO = new UserDTO("luntik","qwerty");
-        userRepository.save(new User(userDTO.getLogin(), passwordEncoder.encode(userDTO.getPassword()), Role.USER));
+        userRepository.save(new User(userDTO.getUsername(), passwordEncoder.encode(userDTO.getPassword()), Role.USER));
 
         MvcResult resultSignIn = mockMvc.perform(post("/api/auth/sign-in")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.login").value(userDTO.getLogin()))
+                .andExpect(jsonPath("$.login").value(userDTO.getUsername()))
                 .andReturn();
 
         SecurityContext securityContextSignIn = securityContext(resultSignIn);
         assertThat(securityContextSignIn).isNotNull();
-        assertThat(securityContextSignIn.getAuthentication().getName()).isEqualTo(userDTO.getLogin());
+        assertThat(securityContextSignIn.getAuthentication().getName()).isEqualTo(userDTO.getUsername());
 
         mockMvc.perform(get("/api/user/me")
                         .with(SecurityMockMvcRequestPostProcessors.securityContext(securityContextSignIn)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.login").value(userDTO.getLogin()));
+                .andExpect(jsonPath("$.login").value(userDTO.getUsername()));
     }
     @Test
     @Tag("userLoginInfo")

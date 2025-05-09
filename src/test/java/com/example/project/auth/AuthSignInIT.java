@@ -3,11 +3,10 @@ package com.example.project.auth;
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
 import com.example.project.repositories.UserRepository;
-import com.example.project.test.AbstractTestContainersConnect;
+import com.example.project.config.TestBeans;
 import com.example.project.utils.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +17,10 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
@@ -29,13 +28,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(classes = TestBeans.class)
 @Transactional
 @AutoConfigureMockMvc
 @Tag("Auth")
 @Tag("Sign-In")
-public class AuthSignInIT extends AbstractTestContainersConnect {
+@ActiveProfiles("test")
+public class AuthSignInIT {
 
+    public static final String USERNAME = "luntik";
+    public static final String PASSWORD = "qwerty";
     @Autowired
     private MockMvc mockMvc;
 
@@ -55,26 +57,26 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
 
     @Test
     void shouldSignInUserSuccessfully() throws Exception {
-        UserDTO userDTO = new UserDTO("luntik","qwerty");
-        userRepository.save(new User(userDTO.getLogin(),passwordEncoder.encode(userDTO.getPassword()), Role.USER));
+        UserDTO userDTO = new UserDTO(USERNAME, PASSWORD);
+        userRepository.save(new User(userDTO.getUsername(),passwordEncoder.encode(userDTO.getPassword()), Role.USER));
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-in")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.login").value(userDTO.getLogin()))
+                .andExpect(jsonPath("$.username").value(userDTO.getUsername()))
                 .andReturn();
 
         SecurityContext securityContext = securityContext(result);
 
         assertThat(securityContext).isNotNull();
-        assertThat(securityContext.getAuthentication().getName()).isEqualTo(userDTO.getLogin());
+        assertThat(securityContext.getAuthentication().getName()).isEqualTo(userDTO.getUsername());
     }
 
     @Test
     @Tag("login-validation")
     void shouldFailWhenUserDoesNotExistOnLogin() throws Exception{
-        UserDTO userDTO = new UserDTO("luntik","qwerty");
+        UserDTO userDTO = new UserDTO(USERNAME,PASSWORD);
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-in")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -92,7 +94,7 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
     @Test
     @Tag("login-validation")
     void shouldFailWhenLoginIsEmpty() throws Exception {
-        UserDTO userDTO = new UserDTO("", "qwerty");
+        UserDTO userDTO = new UserDTO("", PASSWORD);
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-up")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +112,7 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
     @Test
     @Tag("login-validation")
     void shouldFailWhenLoginIsTooShort() throws Exception {
-        UserDTO userDTO = new UserDTO("a", "qwerty");
+        UserDTO userDTO = new UserDTO("a", PASSWORD);
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-up")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -128,7 +130,7 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
     @Test
     @Tag("login-validation")
     void shouldFailWhenLoginHasInvalidCharacters() throws Exception {
-        UserDTO userDTO = new UserDTO("!!!!!!!", "qwerty");
+        UserDTO userDTO = new UserDTO("!!!!!!!", PASSWORD);
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-up")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -146,7 +148,8 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
     @Test
     @Tag("password-validation")
     void shouldFailWhenPasswordIsIncorrectOnLogin() throws Exception{
-        UserDTO userDTO = new UserDTO("luntik","sdsfsdafasdf");
+        UserDTO userDTO = new UserDTO(USERNAME,"sdsfsdafasdf");
+        userRepository.save(new User(userDTO.getUsername(), passwordEncoder.encode(PASSWORD), Role.USER));
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-in")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -165,7 +168,7 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
     @Test
     @Tag("password-validation")
     void shouldFailWhenPasswordIsTooShortOnLogin() throws Exception{
-        UserDTO userDTO = new UserDTO("luntik","1");
+        UserDTO userDTO = new UserDTO(USERNAME,"1");
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-in")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -184,7 +187,7 @@ public class AuthSignInIT extends AbstractTestContainersConnect {
     @Test
     @Tag("password-validation")
     void shouldFailWhenPasswordIsEmptyOnLogin() throws Exception {
-        UserDTO userDTO = new UserDTO("luntik","");
+        UserDTO userDTO = new UserDTO(USERNAME,"");
 
         MvcResult result = mockMvc.perform(post("/api/auth/sign-in")
                         .contentType(MediaType.APPLICATION_JSON)
