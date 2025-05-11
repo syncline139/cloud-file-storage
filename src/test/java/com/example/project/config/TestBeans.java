@@ -14,8 +14,6 @@ public class TestBeans {
 
     public static final String POSTGRES_IMAGE = "postgres:17.4";
     public static final String MINIO_IMAGE = "minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1";
-    public static final String USERNAME = "minioadmin";
-    public static final String PASSWORD = "minioadmin";
 
     @Bean
     @ServiceConnection
@@ -25,9 +23,7 @@ public class TestBeans {
 
     @Bean
     public MinIOContainer minioContainer() {
-        return new MinIOContainer(parse(MINIO_IMAGE))
-                .withUserName(USERNAME)
-                .withPassword(PASSWORD);
+        return new MinIOContainer(parse(MINIO_IMAGE));
     }
 
     @Bean

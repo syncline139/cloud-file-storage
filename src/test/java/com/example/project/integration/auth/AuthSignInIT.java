@@ -1,4 +1,4 @@
-package com.example.project.auth;
+package com.example.project.integration.auth;
 
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;

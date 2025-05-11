@@ -36,13 +36,11 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public ResourceInfoResponse resourceInfo(String path){
         log.info("Вход в 'resourceInfo', путь {}", path);
-        String bucketName = activeUserName();
-
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         if (path == null || path.trim().isEmpty()) {
             log.warn("Путь: {} это бакет",bucketName);
-            return ResourceInfoResponse.forDirectory("", bucketName);
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь"); // 400
         }
 
         String normalizedPath = normalizedPath(path);
@@ -86,22 +84,17 @@ public class StorageServiceImpl implements StorageService {
                         : "";
                 log.info("Путь {} был определен как папка", normalizedPath);
                     return ResourceInfoResponse.forDirectory(parentPath, name);
-            } else {
-                log.error("По пути {} ничего не было найдено",normalizedPath);
-                throw new PathNotFoundException(String.format("Ресурс не найден: '%s'", path)); // 404
             }
         }
 
         log.error("По пути {} ничего не было найдено",normalizedPath);
-        throw new MissingOrInvalidPathException(String.format("Невалидный или отсутствующий путь: '%s'", path)); // 400
+        throw new PathNotFoundException("Ресурс не найден"); // 404
     }
 
     @Override
     public void removeResource(String path) {
         log.info("Вход в 'removeResource', путь: {}", path);
-        String bucketName = activeUserName();
-
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         if (path == null || path.trim().isEmpty()) {
             log.error("Невозможно удалить бакет");
@@ -175,9 +168,7 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public void downloadResource(String path, HttpServletResponse response) {
         log.info("Вход в метод 'downloadResource', путь: {}", path);
-        String bucketName = activeUserName();
-
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         if (path == null || path.trim().isEmpty()) {
             throw new PathNotFoundException("Невозможно скачать бакет");
@@ -289,8 +280,7 @@ public class StorageServiceImpl implements StorageService {
         boolean isDirectory = false; // папка
         long size = 0; // размер файла
 
-        String bucketName = activeUserName();
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         String normalizedOldPath = oldPath.replaceAll("^/+|/+$", "");
         String normalizedNewPath = newPath.replaceAll("^/+|/+$", "");
@@ -457,8 +447,7 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public List<ResourceInfoResponse> searchResource(String query) {
         log.info("Вошли в метод 'searchResource'");
-        String bucketName = activeUserName();
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         String normalizedQuery = query.replaceAll("^/+|/+$", "");
 
@@ -518,8 +507,7 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public Set<ResourceInfoResponse> uploadResource(String path, MultipartFile[] objects){
         log.info("Вошли в метод 'uploadResource'");
-        String bucketName = activeUserName();
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         String normalizedPath = normalizedPath(path);
         if (!normalizedPath.isEmpty() && !normalizedPath.endsWith("/")) {
@@ -568,8 +556,7 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public List<ResourceInfoResponse> directoryContents(String path) {
         log.info("Вход в метод 'directoryContents', путь: {}", path);
-        String bucketName = activeUserName();
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         String normalizedPath = normalizedPath(path);
         log.debug("Нормализованный путь: {}", normalizedPath);
@@ -627,8 +614,7 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public ResourceInfoResponse createEmptyFolder(String path) {
 
-        String bucketName = activeUserName();
-        bucketExists(bucketName);
+        String bucketName = bucketExists();
 
         String normalizdPath = normalizedPath(path);
 
@@ -669,7 +655,8 @@ public class StorageServiceImpl implements StorageService {
         zipOut.closeEntry();
     }
 
-    private void bucketExists(String bucketName) {
+    private String bucketExists() {
+        String bucketName = activeUserName();
         log.info("Проверяем бакет: {}", bucketName);
         try {
             if (minioClient.bucketExists(BucketExistsArgs.builder()
@@ -681,6 +668,7 @@ public class StorageServiceImpl implements StorageService {
             log.error("Бакета с именем {} не существует!", bucketName);
             throw new BucketNotFoundException(String.format("Бакета '%s' не существует", bucketName));
         }
+        return bucketName;
     }
 
     private String activeUserName() {

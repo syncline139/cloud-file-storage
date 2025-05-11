@@ -1,4 +1,4 @@
-package com.example.project.auth;
+package com.example.project.integration.profile;
 
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
@@ -6,7 +6,6 @@ import com.example.project.repositories.UserRepository;
 import com.example.project.config.TestBeans;
 import com.example.project.utils.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,30 +13,26 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
-@Transactional
-@SpringBootTest(classes = TestBeans.class)
+@SpringBootTest
 @AutoConfigureMockMvc
-@Tag("Auth")
-@Tag("logout")
-@ActiveProfiles("test")
-public class AuthLogoutIT {
+@Transactional
+@Tag("profile")
+public class UserInfoIT extends TestBeans {
 
-    public static final String USERNAME = "luntik";
-    public static final String PASSWORD = "qwerty";
     @Autowired
     private MockMvc mockMvc;
 
@@ -51,49 +46,41 @@ public class AuthLogoutIT {
     private ObjectMapper objectMapper;
 
 
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }
-
     @Test
-    @Tag("logout")
-    void shouldSuccessfullyLogoutFromAccount() throws Exception {
+    @Tag("userLoginInfo")
+    void shouldSuccessfullyRetrieveUserDetailsWhenAuthenticated() throws Exception {
 
-        UserDTO userDTO = new UserDTO(USERNAME, PASSWORD);
+        UserDTO userDTO = new UserDTO("luntik","qwerty");
         userRepository.save(new User(userDTO.getUsername(), passwordEncoder.encode(userDTO.getPassword()), Role.USER));
 
         MvcResult resultSignIn = mockMvc.perform(post("/api/auth/sign-in")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(userDTO.getUsername()))
+                .andExpect(jsonPath("$.login").value(userDTO.getUsername()))
                 .andReturn();
 
         SecurityContext securityContextSignIn = securityContext(resultSignIn);
         assertThat(securityContextSignIn).isNotNull();
         assertThat(securityContextSignIn.getAuthentication().getName()).isEqualTo(userDTO.getUsername());
 
-        MvcResult resultLogout = mockMvc.perform(post("/api/auth/sign-out")
+        mockMvc.perform(get("/api/user/me")
                         .with(SecurityMockMvcRequestPostProcessors.securityContext(securityContextSignIn)))
-                .andExpect(status().isNoContent())
-                .andReturn();
-
-        SecurityContext securityContextSignOut = securityContext(resultLogout);
-        assertThat(securityContextSignOut).isNull();
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.login").value(userDTO.getUsername()));
     }
-
     @Test
-    @Tag("logout")
-    void shouldFailLogoutWhenUserIsNotAuthenticated() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/auth/sign-out"))
+    @Tag("userLoginInfo")
+    void shouldDenyUserDetailsAccessWhenNotAuthenticated() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/user/me"))
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Пользователь не авторизован"))
                 .andExpect(jsonPath("$.statusCode").value(401))
                 .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(status().isUnauthorized())
                 .andReturn();
 
         SecurityContext securityContext = securityContext(result);
+
         assertThat(securityContext).isNull();
     }
 
@@ -105,6 +92,4 @@ public class AuthLogoutIT {
                 .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
 
     }
-
-
 }

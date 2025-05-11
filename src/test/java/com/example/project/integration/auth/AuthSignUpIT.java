@@ -1,4 +1,4 @@
-package com.example.project.auth;
+package com.example.project.integration.auth;
 
 import com.example.project.dto.request.UserDTO;
 import com.example.project.entity.User;
@@ -40,6 +40,7 @@ public class AuthSignUpIT {
 
     public static final String USERNAME = "luntik";
     public static final String PASSWORD = "qwerty";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -82,7 +83,7 @@ public class AuthSignUpIT {
         assertThat(securityContext.getAuthentication().getName()).isEqualTo(userDTO.getUsername());
 
         assertThat(minioClient.bucketExists(BucketExistsArgs.builder()
-                .bucket("luntik")
+                .bucket(USERNAME)
                 .build())).isTrue();
     }
 
