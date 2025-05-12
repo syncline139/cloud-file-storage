@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.messages.Item;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
@@ -15,11 +14,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.ByteArrayInputStream;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 public abstract class BaseStorageTest {
 
@@ -56,7 +58,7 @@ public abstract class BaseStorageTest {
         return session;
     }
     @SneakyThrows
-    protected String addFileToBucker() {
+    protected String addFileToBucket() {
         String file = "file-test.txt";
         String content = "hello world";
         minioClient.putObject(PutObjectArgs.builder()
@@ -66,10 +68,9 @@ public abstract class BaseStorageTest {
                 .contentType("text/plain")
                 .build());
 
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+        assertThat(minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(USERNAME)
-                .build());
-        assertThat(results).isNotNull();
+                .build())).hasSize(1);
         return file;
     }
     @SneakyThrows
@@ -84,10 +85,9 @@ public abstract class BaseStorageTest {
                 .contentType("text/plain")
                 .build());
 
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+        assertThat(minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(USERNAME)
-                .build());
-        assertThat(results).isNotNull();
+                .build())).hasSize(1);
         return directory;
     }
 
@@ -113,5 +113,24 @@ public abstract class BaseStorageTest {
         // Очистка базы данных
         userRepository.deleteAll();
         SecurityContextHolder.clearContext();
+        assertThat(minioClient.bucketExists(BucketExistsArgs.builder()
+                .bucket(USERNAME)
+                .build())).isFalse();
+    }
+
+    @SneakyThrows
+    protected boolean searchResourceByName(String resourceName) {
+        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(USERNAME)
+                .recursive(true)
+                .build());
+
+        for (Result<Item> r : results) {
+            Item item = r.get();
+            if (item.objectName().equals(resourceName)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -98,7 +98,7 @@ public class StorageServiceImpl implements StorageService {
 
         if (path == null || path.trim().isEmpty()) {
             log.error("Невозможно удалить бакет");
-            throw new MissingOrInvalidPathException(String.format("Невалидный или отсутствующий путь: %s", path)); // 400
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь"); // 400
         }
 
         String normalizedPath = normalizedPath(path);

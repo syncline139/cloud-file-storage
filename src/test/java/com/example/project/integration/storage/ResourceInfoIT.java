@@ -38,7 +38,7 @@ public class ResourceInfoIT extends BaseStorageTest {
     void shouldReturnFileInfoForValidPath() {
         MockHttpSession session = authorizated();
 
-        String file = addFileToBucker();
+        String file = addFileToBucket();
 
         mockMvc.perform(get("/api/resource")
                         .param("path", file)
