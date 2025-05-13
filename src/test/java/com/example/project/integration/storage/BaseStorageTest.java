@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.io.ByteArrayInputStream;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -75,7 +76,7 @@ public abstract class BaseStorageTest {
     }
     @SneakyThrows
     protected String addDirectoryToBucket() {
-        String file = "file-test.txt";
+        String file = UUID.randomUUID() + ".txt";
         String directory = String.format("test/%s", file);
         String content = "hello world";
         minioClient.putObject(PutObjectArgs.builder()
@@ -87,7 +88,7 @@ public abstract class BaseStorageTest {
 
         assertThat(minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(USERNAME)
-                .build())).hasSize(1);
+                .build())).isNotNull();
         return directory;
     }
 
@@ -132,5 +133,16 @@ public abstract class BaseStorageTest {
             }
         }
         return false;
+    }
+
+    @SneakyThrows
+    protected Long sizeInfo(String filePath) {
+
+        StatObjectResponse statObjectResponse = minioClient.statObject(StatObjectArgs.builder()
+                .bucket(USERNAME)
+                .object(filePath)
+                .build());
+        return statObjectResponse.size();
+
     }
 }

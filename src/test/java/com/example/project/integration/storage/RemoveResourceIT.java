@@ -31,7 +31,6 @@ public class RemoveResourceIT extends BaseStorageTest{
 
 
     @BeforeEach
-    @SneakyThrows
     void clearBucketRemoveBucketClearDatabase() {
         clearBucketAndDatabase();
     }

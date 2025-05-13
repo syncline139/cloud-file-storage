@@ -28,7 +28,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ResourceInfoIT extends BaseStorageTest {
 
     @BeforeEach
-    @SneakyThrows
     void clearBucketRemoveBucketClearDatabase() {
         clearBucketAndDatabase();
     }

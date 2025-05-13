@@ -213,7 +213,7 @@ public class StorageServiceImpl implements StorageService {
 
         if (!isFile && !hasFiles) {
             log.warn("Ресурс не найден");
-            throw new PathNotFoundException("ресурс не найден: " + path);
+            throw new PathNotFoundException("Ресурс не найден: " + path);
         }
 
         try {
@@ -387,7 +387,10 @@ public class StorageServiceImpl implements StorageService {
 
         if (isFile) {
             String nameFile = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/') + 1);
-            return ResourceInfoResponse.forFile(normalizedNewPath,nameFile,size);
+            String pathToFile = normalizedOldPath.lastIndexOf('/') >= 0
+                    ? normalizedOldPath.substring(0, normalizedOldPath.lastIndexOf('/') + 1)
+                    : "";
+            return ResourceInfoResponse.forFile(pathToFile,nameFile,size);
         }
 
         if (isDirectory) {
@@ -522,18 +525,16 @@ public class StorageServiceImpl implements StorageService {
         Set<ResourceInfoResponse> responses = new HashSet<>();
 
         for (MultipartFile file : objects) {
-
             String fullPath = normalizedPath + file.getOriginalFilename();
-
             try {
                 minioClient.statObject(StatObjectArgs.builder()
                         .bucket(bucketName)
                         .object(fullPath)
                         .build());
-                throw new ResourceAlreadyExistsException("файл уже существует");
+                throw new ResourceAlreadyExistsException(fullPath);
             } catch (ResourceAlreadyExistsException e) {
                 log.error("Файл '{}' уже сущестует", file.getOriginalFilename());
-                throw new ResourceAlreadyExistsException(e.getMessage());
+                throw new ResourceAlreadyExistsException(fullPath);
             } catch (Exception e) {
                 //
             }
