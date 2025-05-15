@@ -57,8 +57,8 @@ public class MoverOrRenameIT extends BaseStorageTest {
     @Test
     @SneakyThrows
     void успешноеПереименованиеФайлаВДиректории() {
-        MockHttpSession session = authorizated();
         String oldFilePath = addDirectoryToBucket();
+        MockHttpSession session = authorizated();
         String newFilePath = oldFilePath.substring(0, oldFilePath.lastIndexOf("/") + 1) + "newNameTest.txt";
 
         mockMvc.perform(get("/api/resource/move")
@@ -75,11 +75,11 @@ public class MoverOrRenameIT extends BaseStorageTest {
 
     @Test
     @SneakyThrows
-    void перемещениеФайла() {
+    void переименованиеФайла() {
         MockHttpSession session = authorizated();
         String oldFilePath = addFileToBucket();
         String directoryPath = addDirectoryToBucket();
-        String directoryName = directoryPath.substring(0, directoryPath.lastIndexOf('/') + 1);
+        String directoryName = directoryNameFromFullPathFile(directoryPath);
         String newFilePath = directoryName + "newNameFile";
         mockMvc.perform(get("/api/resource/move")
                 .param("from", oldFilePath)
@@ -103,7 +103,7 @@ public class MoverOrRenameIT extends BaseStorageTest {
         MockHttpSession session = authorizated();
 
         String directoryPath = addDirectoryToBucket();
-        String directoryName = directoryPath.substring(0, directoryPath.lastIndexOf('/') + 1);
+        String directoryName = directoryNameFromFullPathFile(directoryPath);
         String PZIDEC = directoryName.substring(0,directoryName.lastIndexOf('/'));
         mockMvc.perform(get("/api/resource/move")
                 .param("from", directoryPath)
@@ -116,5 +116,29 @@ public class MoverOrRenameIT extends BaseStorageTest {
                 .andExpect(jsonPath("$.type").value("DIRECTORY"));
     }
 
+    @Test
+    @SneakyThrows
+    void переименованиеФайлаВДиректории() {
+        MockHttpSession session = authorizated();
+
+        String fullPathBeforeFile = addDirectoryToBucket();
+        String directoryName = directoryNameFromFullPathFile(fullPathBeforeFile);
+        String newFilePath = directoryName + "test.txt";
+        mockMvc.perform(get("/api/resource/move")
+                        .param("from", fullPathBeforeFile)
+                        .param("to", newFilePath)
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.path").value(directoryName))
+                .andExpect(jsonPath("$.name").value(newFilePath.substring(fullPathBeforeFile.lastIndexOf("/") + 1)))
+                .andExpect(jsonPath("$.size").value(sizeInfo(fullPathBeforeFile)))
+                .andExpect(jsonPath("$.type").value("FILE"));
+
+    }
+
+    private String directoryNameFromFullPathFile(String fullPathBeforeFile) {
+        return fullPathBeforeFile.substring(0, fullPathBeforeFile.lastIndexOf('/') + 1);
+    }
 
 }

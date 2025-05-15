@@ -36,7 +36,7 @@ public class DownloadResourceIT extends BaseStorageTest {
 
     @Test
     @SneakyThrows
-    void успешноеСкачиваниеФайла() {
+    void shouldDownloadFileSuccessfully() {
         MockHttpSession session = authorizated();
         String filePath = addFileToBucket();
         mockMvc.perform(get("/api/resource/download")
@@ -47,7 +47,7 @@ public class DownloadResourceIT extends BaseStorageTest {
     }
     @Test
     @SneakyThrows
-    void успешноеСкачиваниеДиректории() {
+    void shouldDownloadDirectorySuccessfully() {
         MockHttpSession session = authorizated();
         String path = addDirectoryToBucket();
         mockMvc.perform(get("/api/resource/download")
@@ -59,7 +59,7 @@ public class DownloadResourceIT extends BaseStorageTest {
 
     @Test
     @SneakyThrows
-    void пользовательНеАвторизирован() {
+    void shouldReturnUnauthorizedForNoSession() {
         mockMvc.perform(get("/api/resource/download")
                         .param("path", "")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM_VALUE))
@@ -70,7 +70,7 @@ public class DownloadResourceIT extends BaseStorageTest {
 
     @Test
     @SneakyThrows
-    void ресурсНеНайден() {
+    void shouldReturnNotFoundForInvalidPath() {
         MockHttpSession session = authorizated();
         String filePath = addFileToBucket();
 
@@ -85,7 +85,7 @@ public class DownloadResourceIT extends BaseStorageTest {
 
     @Test
     @SneakyThrows
-    void невозможноСкачатьБакет() {
+    void shouldReturnNotFoundForBucketDownload() {
         MockHttpSession session = authorizated();
         String path = "";
 

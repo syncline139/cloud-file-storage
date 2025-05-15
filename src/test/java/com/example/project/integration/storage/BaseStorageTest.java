@@ -1,6 +1,7 @@
 package com.example.project.integration.storage;
 
 import com.example.project.dto.request.UserDTO;
+import com.example.project.exceptions.storage.ResourceAlreadyExistsException;
 import com.example.project.repositories.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
@@ -74,17 +75,21 @@ public abstract class BaseStorageTest {
                 .build())).hasSize(1);
         return file;
     }
-    @SneakyThrows
+
     protected String addDirectoryToBucket() {
         String file = UUID.randomUUID() + ".txt";
         String directory = String.format("test/%s", file);
         String content = "hello world";
-        minioClient.putObject(PutObjectArgs.builder()
-                .bucket(USERNAME)
-                .object(directory)
-                .stream(new ByteArrayInputStream(content.getBytes()), content.length(), -1)
-                .contentType("text/plain")
-                .build());
+        try {
+            minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(USERNAME)
+                    .object(directory)
+                    .stream(new ByteArrayInputStream(content.getBytes()), content.length(), -1)
+                    .contentType("text/plain")
+                    .build());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         assertThat(minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(USERNAME)
