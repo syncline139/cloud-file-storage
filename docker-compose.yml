@@ -54,8 +54,7 @@ services:
     container_name: cloud-file-storage-frontend
     ports:
       - "80:80"
-    depends_on:
-      - backend
+
 
   minio:
     image: minio/minio:latest

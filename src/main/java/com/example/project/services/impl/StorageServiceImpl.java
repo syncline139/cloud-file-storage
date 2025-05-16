@@ -1,6 +1,5 @@
 package com.example.project.services.impl;
 
-import com.example.project.dto.response.ErrorResponse;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.*;
@@ -11,7 +10,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -323,9 +321,13 @@ public class StorageServiceImpl implements StorageService {
             }
         }
 
+        if (oldPath.isEmpty() || newPath.isEmpty()) {
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
+        }
+
         if (!isFile && !isDirectory) {
                 log.warn("Ресурс не найден {}",normalizedOldPath);
-                throw new PathNotFoundException("ресурс не найден: " + oldPath);
+                throw new PathNotFoundException("Ресурс не найден");
             }
 
         if (isFile) {
@@ -439,9 +441,23 @@ public class StorageServiceImpl implements StorageService {
         }
 
         if (isDirectory) {
-            String path = normalizedNewPath.substring(0,normalizedNewPath.lastIndexOf("/"));
-            String name = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/'));
-            return ResourceInfoResponse.forDirectory(path,name);
+            String path;
+            String name;
+
+            String cleanPath = normalizedNewPath.endsWith("/")
+                    ? normalizedNewPath.substring(0, normalizedNewPath.length() - 1)
+                    : normalizedNewPath;
+
+            int lastSlashIndex = cleanPath.lastIndexOf('/');
+            if (lastSlashIndex == -1) {
+                path = "";
+                name = cleanPath;
+            } else {
+                path = cleanPath.substring(0, lastSlashIndex) + '/';
+                name = cleanPath.substring(lastSlashIndex + 1);
+            }
+
+            return ResourceInfoResponse.forDirectory(path, name);
         }
         log.warn("Невалидный или отсутствующий путь {}, {}", oldPath, newPath);
         throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");

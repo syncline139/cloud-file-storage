@@ -13,6 +13,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.testcontainers.shaded.com.trilead.ssh2.Session;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashSet;
@@ -77,8 +78,9 @@ public abstract class BaseStorageTest {
     }
 
     protected String addDirectoryToBucket() {
-        String file = UUID.randomUUID() + ".txt";
-        String directory = String.format("test/%s", file);
+        String fileName = UUID.randomUUID() + ".txt";
+        String directoryName = UUID.randomUUID().toString();
+        String directory = String.format("%s/%s",directoryName, fileName);
         String content = "hello world";
         try {
             minioClient.putObject(PutObjectArgs.builder()
@@ -90,7 +92,6 @@ public abstract class BaseStorageTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
         assertThat(minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(USERNAME)
                 .build())).isNotNull();
@@ -142,12 +143,13 @@ public abstract class BaseStorageTest {
 
     @SneakyThrows
     protected Long sizeInfo(String filePath) {
-
-        StatObjectResponse statObjectResponse = minioClient.statObject(StatObjectArgs.builder()
+        return minioClient.statObject(StatObjectArgs.builder()
                 .bucket(USERNAME)
                 .object(filePath)
-                .build());
-        return statObjectResponse.size();
+                .build()).size();
+    }
 
+    protected String directoryNameFromFullPathFile(String fullPathBeforeFile) {
+        return fullPathBeforeFile.substring(0, fullPathBeforeFile.lastIndexOf('/') + 1);
     }
 }
