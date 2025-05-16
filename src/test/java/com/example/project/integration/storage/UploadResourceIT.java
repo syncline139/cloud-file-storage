@@ -30,8 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Tag("uploadResource")
 public class UploadResourceIT extends BaseStorageTest {
 
-    @Autowired
-    private MockMvc mockMvc;
 
     @BeforeEach
     void clearBucketRemoveBucketClearDatabase() {

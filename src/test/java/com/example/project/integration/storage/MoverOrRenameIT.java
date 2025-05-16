@@ -31,8 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Tag("moverOrRename")
 public class MoverOrRenameIT extends BaseStorageTest {
 
-    @Autowired
-    private MockMvc mockMvc;
 
 
 

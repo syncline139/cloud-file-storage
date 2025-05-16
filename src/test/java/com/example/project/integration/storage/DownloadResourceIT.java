@@ -26,8 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Tag("downloadResource")
 public class DownloadResourceIT extends BaseStorageTest {
 
-    @Autowired
-    private MockMvc mockMvc;
 
     @BeforeEach
     void clearBucketRemoveBucketClearDatabase() {

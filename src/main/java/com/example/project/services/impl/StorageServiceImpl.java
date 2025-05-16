@@ -465,6 +465,7 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public List<ResourceInfoResponse> searchResource(String query) {
+        // todo | не ищет директорию
         log.info("Вошли в метод 'searchResource'");
         String bucketName = bucketExists();
 
@@ -511,7 +512,8 @@ public class StorageServiceImpl implements StorageService {
             String fullPath = item.objectName();
             String name = item.objectName().substring(item.objectName().lastIndexOf('/') + 1);
             Long size = item.size();
-            responseList.add(ResourceInfoResponse.forFile(fullPath, name,size));
+            String path = fullPath.substring(0,fullPath.lastIndexOf("/") + 1);
+            responseList.add(ResourceInfoResponse.forFile(path, name,size));
         }
 
         if (responseList.isEmpty()) {
