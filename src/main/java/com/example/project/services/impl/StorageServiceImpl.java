@@ -10,11 +10,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.*;
 import java.util.*;
@@ -579,14 +581,14 @@ public class StorageServiceImpl implements StorageService {
 
         String normalizedPath = normalizedPath(path);
         log.debug("Нормализованный путь: {}", normalizedPath);
-
+        boolean pathFile = false;
         try {
             minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
                     .object(normalizedPath)
                     .build());
             log.error("Путь '{}' является файлом", path);
-            throw new MissingOrInvalidPathException("Указанный путь является файлом, ожидается директория");
+            pathFile = true;
         } catch (Exception e) {
             log.info("Путь '{}' является директорией или не существует", path);
         }
@@ -605,10 +607,18 @@ public class StorageServiceImpl implements StorageService {
                     .build());
         }
         List<ResourceInfoResponse> infoResponseList = new ArrayList<>();
+        String targetName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
+        boolean found = false;
         for (Result<Item> result : results) {
             try {
                 Item item = result.get();
                 String objectName = item.objectName();
+
+                if (objectName.equals(targetName) && item.isDir()) {
+                    found = true;
+                    break;
+                }
+
                 String parentPath = normalizedPath.isEmpty() ? "" : normalizedPath + "/";
 
                 if (objectName.endsWith("/")) {
@@ -625,41 +635,110 @@ public class StorageServiceImpl implements StorageService {
                 log.error("Ошибка при обработке объекта: {}", e.getMessage());
             }
         }
+        if (pathFile) {
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
+        }
 
+        if (!found) {
+            throw new PathNotFoundException("Папка не существует");
+        }
 
         log.debug("Результат: {}", infoResponseList);
         return infoResponseList;
     }
     @Override
     public ResourceInfoResponse createEmptyFolder(String path) {
-
+        // todo допилить эту хрень, она плохо работает.
         String bucketName = bucketExists();
+        String normalizedPath = normalizedPath(path);
 
-        String normalizdPath = normalizedPath(path);
-
+        // Проверяем, существует ли папка
         try {
-            minioClient.statObject(StatObjectArgs.builder()
+            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
                     .bucket(bucketName)
-                    .object(normalizdPath)
+                    .prefix(normalizedPath + "/")
+                    .recursive(false)
                     .build());
-            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь к новой папке");
+
+            for (Result<Item> itemResult : results) {
+                Item item = itemResult.get();
+                if (item.objectName().equals(normalizedPath + "/")) {
+                    throw new Exception();
+                }
+            }
         } catch (Exception e) {
-            //
+            throw new ResourceAlreadyExistsException(normalizedPath);
         }
 
+        // Проверяем, что родительская папка существует в бакете
+        String parentFolder = path.contains("/")
+                ? normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1)
+                : "";
+
+        if (!parentFolder.isEmpty()) {
+            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .recursive(false)
+                    .prefix(parentFolder)
+                    .build());
+
+            boolean parentExists = false;
+            for (Result<Item> r : results) {
+                Item item;
+                try {
+                    item = r.get();
+                } catch (Exception e) {
+                    continue;
+                }
+
+                if (item.objectName().equals(parentFolder)) {
+                    parentExists = true;
+                    break; // Если нашли, выходим из цикла
+                }
+            }
+
+            if (!parentExists) {
+                throw new PathNotFoundException("Родительская папка не существует");
+            }
+        }
+
+        // Папка уже существует
+        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(bucketName)
+                .recursive(false)
+                .prefix(normalizedPath + "/")
+                .build());
+
+        for (Result<Item> r : results) {
+            Item item;
+            try {
+                item = r.get();
+            } catch (Exception e) {
+                continue;
+            }
+            if (item.objectName().equals(normalizedPath + "/")) {
+                throw new ResourceAlreadyExistsException(normalizedPath);
+            }
+        }
+        if (path.isEmpty()) {
+            throw new MissingOrInvalidPathException("Невалидный или отсутсвующий путь");
+        }
+
+        // Создаём пустую папку
         try {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(bucketName)
-                    .object(normalizdPath + "/")
+                    .object(normalizedPath + "/")
                     .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
                     .build());
         } catch (Exception e) {
-            //
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Ошибка при создании папки: " + e.getMessage(), e);
         }
 
-        String finalPath = normalizdPath;
-        String name = normalizdPath;
-        return ResourceInfoResponse.forDirectory(finalPath,name);
+        String finalPath = normalizedPath.isEmpty() ? "" : normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1);
+        String name = normalizedPath.isEmpty() ? "" : normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1);
+        return ResourceInfoResponse.forDirectory(finalPath, name);
     }
 
     private void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {

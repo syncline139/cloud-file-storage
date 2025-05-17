@@ -52,7 +52,8 @@ public class SecurityConfig {
                                 "/api/resource",
                                 "/api/resource/download",
                                 "/api/resource/move",
-                                "/api/resource/search"
+                                "/api/resource/search",
+                                "/api/directory"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

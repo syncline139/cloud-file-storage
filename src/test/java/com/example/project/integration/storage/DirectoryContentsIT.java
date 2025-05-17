@@ -13,20 +13,18 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
 
-
 import java.io.ByteArrayInputStream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
 @SpringBootTest(classes = TestBeans.class)
-@ActiveProfiles("test")
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 @Tag("Storage")
-@Tag("searchResource")
-public class SearchResourceIT extends BaseStorageTest{
+@Tag("directoryContents")
+public class DirectoryContentsIT extends BaseStorageTest {
 
     @BeforeEach
     void clearBucketRemoveBucketClearDatabase() {
@@ -35,47 +33,41 @@ public class SearchResourceIT extends BaseStorageTest{
 
     @Test
     @SneakyThrows
-    void shouldSearchFileSuccessfully() {
+    void невалидныйИлиОтсутствующийПуть() { // 400
         MockHttpSession session = authorizated();
 
-        String fileFullPathInDirectory = addDirectoryToBucket();
+        String fullFilePathInDirectory = addDirectoryToBucket();
 
-
-        mockMvc.perform(get("/api/resource/search")
-                        .param("query", fileFullPathInDirectory)
-                        .session(session)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].path").value(fileFullPathInDirectory.substring(0,fileFullPathInDirectory.lastIndexOf("/") +1 )))
-                .andExpect(jsonPath("$[0].name").value(fileFullPathInDirectory.substring(fileFullPathInDirectory.lastIndexOf("/") + 1)))
-                .andExpect(jsonPath("$[0].size").value(sizeInfo(fileFullPathInDirectory)))
-                .andExpect(jsonPath("$[0].type").value("FILE"));
-    }
-
-    // todo | после рефакторинга добавить сюда тест поиска директории ( shouldSearchDirectorySuccessfully )
-
-    @Test
-    @SneakyThrows
-    void shouldFailSearchWithInvalidOrMissingQuery() {
-        MockHttpSession session = authorizated();
-
-        mockMvc.perform(get("/api/resource/search")
-                        .param("query","Такого ресурса не существует" )
+        mockMvc.perform(get("/api/directory")
+                        .param("path", fullFilePathInDirectory)
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Невалидный или отсутствующий поисковый запрос"))
+                .andExpect(jsonPath("$.message").value("Невалидный или отсутствующий путь"))
                 .andExpect(jsonPath("$.statusCode").value(HttpStatus.BAD_REQUEST.value()));
+
     }
 
     @Test
     @SneakyThrows
-    void shouldFailSearchWhenUserNotAuthorized() {
-        mockMvc.perform(get("/api/resource/search")
-                        .param("query",""))
+    void папкиНеСуществует() { //404
+        MockHttpSession session = authorizated();
+
+        mockMvc.perform(get("/api/directory")
+                        .param("path", "1sdfsad/fsadf")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Папка не существует"))
+                .andExpect(jsonPath("$.statusCode").value(HttpStatus.NOT_FOUND.value()));
+    }
+    @Test
+    @SneakyThrows
+    void пользоватльНеАвторизирован() {
+        mockMvc.perform(get("/api/directory")
+                        .param("path",""))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Пользователь не авторизован"))
                 .andExpect(jsonPath("$.statusCode").value(HttpStatus.UNAUTHORIZED.value()));
     }
-
 }
