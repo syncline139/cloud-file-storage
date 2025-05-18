@@ -30,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @RequiredArgsConstructor
 @Primary
-@Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
     private final PasswordEncoder passwordEncoder;
@@ -38,9 +37,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final MinioClient minioClient;
 
-
-    @Override
     @Transactional
+    @Override
     public void registerAndAuthenticateUser(UserDTO userDTO, HttpServletRequest request) {
         log.info("Вошли в метод 'registerAndAuthenticateUser'");
 

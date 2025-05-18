@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 @Primary
-@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     @Override
