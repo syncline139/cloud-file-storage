@@ -45,69 +45,15 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = bucketExists();
         validatePath(path, bucketName);
         String normalizedPath = normalizedPath(path);
+        validatePath(path,bucketName);
+        ResourceInfoResponse resourceInfo = isDirectoryOrFile(normalizedPath, bucketName);
 
-//        determineResourceType()
-
-        boolean isFile = false;
-        boolean isFolderOrFileDeleted = false;
-        try {
-            minioClient.statObject(StatObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(normalizedPath)
-                    .build());
-
-            isFile = true;
-            log.info("Путь {} был определен как файл", normalizedPath);
-            minioClient.removeObject(RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(normalizedPath)
-                    .build());
-            isFolderOrFileDeleted = true;
-            log.info("Файл по пути {} был успешно удален",normalizedPath);
-        } catch (Exception e) {
-            log.info("Путь: {} не является файлом, проверяем как папку", normalizedPath);
+        if (!resourceInfo.name().endsWith("/")) {
+            deleteFile(normalizedPath, bucketName);
+        } else {
+            deleteDirectory(normalizedPath, bucketName);
         }
 
-        if (!isFile) {
-          Iterable<Result<Item>> listObjects =  minioClient.listObjects(ListObjectsArgs.builder()
-                    .prefix(normalizedPath + "/")
-                    .bucket(bucketName)
-                    .recursive(true)
-                    .build());
-
-            Iterator<Result<Item>> iterator = listObjects.iterator();
-
-            if (!iterator.hasNext()) {
-                log.error("Путь: {} ничего не содержит",normalizedPath);
-                throw new PathNotFoundException("Ресурс не найден");
-            }
-
-            for (Result<Item> result : listObjects) {
-
-                Item item;
-                try {
-                    item = result.get();
-                } catch (Exception e) {
-                    continue;
-                }
-
-                try {
-                    minioClient.removeObject(RemoveObjectArgs.builder()
-                                    .bucket(bucketName)
-                            .object(item.objectName())
-                            .build());
-                } catch (Exception e) {
-                    log.error("Ресурс не найден | {}", e.getMessage());
-                    throw new PathNotFoundException("Ресурс не найден | " + e.getMessage());
-                }
-            }
-            isFolderOrFileDeleted = true;
-        }
-
-        if (!isFolderOrFileDeleted) {
-            log.error("Невалидный или отсутствующий путь | {}", normalizedPath);
-            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
-        }
     }
 
     @Override
@@ -789,6 +735,47 @@ public class StorageServiceImpl implements StorageService {
         if (path == null || path.trim().isEmpty()) {
             log.warn("Путь: {} это бакет",bucketName);
             throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь"); // 400
+        }
+    }
+
+    private void deleteFile(String path, String bucketName) {
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(path)
+                    .build());
+        } catch (Exception e) {
+            log.info("Во время удаление файла произошла ошибка");
+        }
+    }
+
+    private void deleteDirectory(String normalizedPath, String bucketName) {
+        Iterable<Result<Item>> listObjects =  minioClient.listObjects(ListObjectsArgs.builder()
+                .prefix(normalizedPath + "/")
+                .bucket(bucketName)
+                .recursive(true)
+                .build());
+
+        if (!listObjects.iterator().hasNext()) {
+            log.error("Путь: {} ничего не содержит",normalizedPath);
+            throw new PathNotFoundException("Ресурс не найден");
+        }
+        for (Result<Item> result : listObjects) {
+            Item item;
+            try {
+                item = result.get();
+            } catch (Exception e) {
+                continue;
+            }
+            try {
+                minioClient.removeObject(RemoveObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(item.objectName())
+                        .build());
+            } catch (Exception e) {
+                log.error("Ресурс не найден | {}", e.getMessage());
+                throw new PathNotFoundException("Ресурс не найден | " + e.getMessage());
+            }
         }
     }
 }

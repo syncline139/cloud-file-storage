@@ -126,7 +126,7 @@ public class ResourceInfoIT extends BaseStorageTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.path").value(""))
-                .andExpect(jsonPath("$.name").value(directory.substring(0,directory.lastIndexOf("/"))))
+                .andExpect(jsonPath("$.name").value(directory.substring(0,directory.lastIndexOf("/")) + "/"))
                 .andExpect(jsonPath("$.type").value("DIRECTORY"));
 
         assertThat(minioClient.bucketExists(BucketExistsArgs.builder()

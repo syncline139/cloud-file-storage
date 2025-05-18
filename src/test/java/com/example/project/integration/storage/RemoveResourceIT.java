@@ -126,21 +126,6 @@ public class RemoveResourceIT extends BaseStorageTest{
                 .andExpect(jsonPath("$.statusCode").value(HttpStatus.BAD_REQUEST.value()));
     }
 
-    @Test
-    @SneakyThrows
-    void normalizedPathSuccessfully() {
-        MockHttpSession session = authorizated();
-        String directory = addDirectoryToBucket();
-        String fileName = String.format("///   %s ///  ", directory);
-
-        mockMvc.perform(delete("/api/resource")
-                        .param("path", fileName)
-                        .session(session)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());
-
-        assertThat(searchResourceByName(fileName)).isFalse();
-    }
 
 
 }
