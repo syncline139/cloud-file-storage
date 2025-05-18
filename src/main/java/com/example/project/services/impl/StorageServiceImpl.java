@@ -66,99 +66,12 @@ public class StorageServiceImpl implements StorageService {
         }
 
         String normalizedPath = normalizedPath(path);
+        ResourceInfoResponse resourceInfo = isDirectoryOrFile(normalizedPath, bucketName);
 
-        boolean isFile = false;
-        boolean hasFiles = false;
-
-        try {
-            minioClient.statObject(StatObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(normalizedPath)
-                    .build());
-            isFile = true;
-        } catch (Exception e) {
-            log.info("Путь: {} не является файлом, проверяем как папку", normalizedPath);
-        }
-
-        if (!isFile) {
-            Iterable<Result<Item>> listObjects = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(bucketName)
-                    .prefix(normalizedPath + "/")
-                    .recursive(true)
-                    .build());
-
-            for (Result<Item> result : listObjects) {
-                Item item;
-                try {
-                    item = result.get();
-                } catch (Exception e) {
-                    continue;
-                }
-                String objectName = item.objectName();
-                if (!objectName.endsWith("/")) {
-                    hasFiles = true;
-                    break;
-                }
-            }
-        }
-
-        if (!isFile && !hasFiles) {
-            log.warn("Ресурс не найден");
-            throw new PathNotFoundException("Ресурс не найден: " + path);
-        }
-
-        try {
-            if (isFile) {
-                String fileName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
-
-                response.setContentType("application/octet-stream");
-                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-
-                try (InputStream inputStream = minioClient.getObject(GetObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(normalizedPath)
-                        .build());
-                     OutputStream out = response.getOutputStream()) {
-                    inputStream.transferTo(out);
-                }
-
-                log.info("Файл по пути '{}' успешно скачен как '{}'", normalizedPath, fileName);
-
-            } else {
-                response.setContentType("application/zip");
-                response.setHeader("Content-Disposition", "attachment; filename=\"archive.zip\"");
-
-                try (ZipOutputStream zipOut = new ZipOutputStream(response.getOutputStream())) {
-                    Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                            .bucket(bucketName)
-                            .prefix(normalizedPath + "/")
-                            .recursive(true)
-                            .build());
-
-                    for (Result<Item> result : results) {
-                        Item item = result.get();
-                        String objectName = item.objectName();
-                        if (objectName.endsWith("/")) {
-                            continue;
-                        }
-
-                        try (InputStream fileToZip = minioClient.getObject(GetObjectArgs.builder()
-                                .bucket(bucketName)
-                                .object(objectName)
-                                .build())) {
-
-                            String relativePath = objectName.substring(normalizedPath.length() + 1);
-                            zip(zipOut, fileToZip, relativePath);
-                        }
-                    }
-                    zipOut.finish();
-                }
-
-                log.info("Директория по пути '{}' успешно скачена как архив", normalizedPath);
-            }
-        } catch (Exception e) {
-            log.error("Ошибка при скачивании ресурса по пути {}: {}", normalizedPath, e.getMessage());
-            throw new MinioNotFoundException("Ошибка при скачивании из MinIO: " + e.getMessage());
+        if (resourceInfo.name().endsWith("/")) {
+            downloadDirectory(normalizedPath,bucketName, response);
+        } else {
+            downloadFile(normalizedPath,bucketName, response);
         }
     }
 
@@ -776,6 +689,63 @@ public class StorageServiceImpl implements StorageService {
                 log.error("Ресурс не найден | {}", e.getMessage());
                 throw new PathNotFoundException("Ресурс не найден | " + e.getMessage());
             }
+        }
+    }
+
+    private void downloadFile(String normalizedPath, String bucketName,HttpServletResponse response ) {
+        try {
+            String fileName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
+
+            response.setContentType("application/octet-stream");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+            try (InputStream inputStream = minioClient.getObject(GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizedPath)
+                    .build());
+                 OutputStream out = response.getOutputStream()) {
+                inputStream.transferTo(out);
+            }
+            log.info("Файл по пути '{}' успешно скачен как '{}'", normalizedPath, fileName);
+        }catch (Exception e) {
+            log.error("Ошибка при скачивании ресурса по пути {}: {}", normalizedPath, e.getMessage());
+            throw new MinioNotFoundException("Ошибка при скачивании из MinIO: " + e.getMessage());
+        }
+    }
+
+    private void downloadDirectory(String normalizedPath, String bucketName,HttpServletResponse response) {
+        try {
+            response.setContentType("application/zip");
+            response.setHeader("Content-Disposition", "attachment; filename=\"archive.zip\"");
+
+            try (ZipOutputStream zipOut = new ZipOutputStream(response.getOutputStream())) {
+                Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(normalizedPath + "/")
+                        .recursive(true)
+                        .build());
+
+                for (Result<Item> result : results) {
+                    Item item = result.get();
+                    String objectName = item.objectName();
+                    if (objectName.endsWith("/")) {
+                        continue;
+                    }
+
+                    try (InputStream fileToZip = minioClient.getObject(GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .build())) {
+
+                        String relativePath = objectName.substring(normalizedPath.length() + 1);
+                        zip(zipOut, fileToZip, relativePath);
+                    }
+                }
+                zipOut.finish();
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при скачивании ресурса по пути {}: {}", normalizedPath, e.getMessage());
+            throw new MinioNotFoundException("Ошибка при скачивании из MinIO: " + e.getMessage());
         }
     }
 }

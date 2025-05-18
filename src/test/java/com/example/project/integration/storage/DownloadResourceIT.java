@@ -77,7 +77,7 @@ public class DownloadResourceIT extends BaseStorageTest {
                         .contentType(MediaType.APPLICATION_OCTET_STREAM_VALUE)
                         .session(session))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value(String.format("Ресурс не найден: %s", filePath + ".")))
+                .andExpect(jsonPath("$.message").value("Ресурс не найден"))
                 .andExpect(jsonPath("$.statusCode").value(HttpStatus.NOT_FOUND.value()));
     }
 
