@@ -31,9 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Tag("moverOrRename")
 public class MoverOrRenameIT extends BaseStorageTest {
 
-
-
-
     @BeforeEach
     void clearBucketRemoveBucketClearDatabase() {
         clearBucketAndDatabase();
@@ -161,7 +158,7 @@ public class MoverOrRenameIT extends BaseStorageTest {
 
         mockMvc.perform(get("/api/resource/move")
                         .param("from", "")
-                        .param("to", "")
+                        .param("to", "dima/dasd")
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
