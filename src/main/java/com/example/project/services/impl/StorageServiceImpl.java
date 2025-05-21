@@ -29,7 +29,6 @@ import java.util.zip.ZipOutputStream;
 public class StorageServiceImpl implements StorageService {
 
     private final MinioClient minioClient;
-    private final Object fileSystemOperationLock = new Object();
 
     @Override
     public ResourceInfoResponse resourceInfo(String path){
@@ -74,7 +73,6 @@ public class StorageServiceImpl implements StorageService {
             downloadFile(normalizedPath,bucketName, response);
         }
     }
-
 
     @Override
     public ResourceInfoResponse moverOrRename(String oldPath, String newPath) {
@@ -135,12 +133,9 @@ public class StorageServiceImpl implements StorageService {
         log.info("Вошли в метод 'searchResource'");
         String bucketName = bucketExists();
 
-        String normalizedQuery = query.replaceAll("^/+|/+$", "");
+        String normalizedQuery = normalizedPath(query);
 
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(bucketName)
-                .recursive(true)
-                .build());
+        Iterable<Result<Item>> results = listObjectsRecursiveTrue(bucketName);
 
         HashMap<String, Item> dirs = new HashMap<>();
         HashMap<String, Item> files = new HashMap<>();
@@ -155,14 +150,17 @@ public class StorageServiceImpl implements StorageService {
                 continue;
             }
             if (objectName.contains(normalizedQuery)) {
-                if (objectName.endsWith("/")) {
-                    dirs.put(objectName, item);
+
+                if (objectName.contains("/") && objectName.endsWith("/")) {
+                        String[] brokenPath =objectName.split("/");
+                        for (String br : brokenPath){
+                            dirs.put(br, item);
+                        }
+                }
                 } else {
                     files.put(objectName, item);
                 }
             }
-
-        }
 
         List<ResourceInfoResponse> responseList = new ArrayList<>();
 
@@ -170,7 +168,7 @@ public class StorageServiceImpl implements StorageService {
             Item item = entry.getValue();
             String fullPath = item.objectName();
             String trimmed = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
-            String name = trimmed.substring(trimmed.lastIndexOf('/') + 1);
+            String name = trimmed.substring(trimmed.lastIndexOf('/') + 1) + "/";
             responseList.add(ResourceInfoResponse.forDirectory(fullPath, name));
         }
         for (Map.Entry<String, Item> entry : files.entrySet()) {
@@ -457,6 +455,13 @@ public class StorageServiceImpl implements StorageService {
                         .recursive(false)
                         .build()
         );
+    }
+
+    private Iterable<Result<Item>> listObjectsRecursiveTrue(String bucketName) {
+        return minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(bucketName)
+                .recursive(true)
+                .build());
     }
 
     private ResourceInfoResponse isDirectoryOrFile(String normalizedPath, String bucketName) {
