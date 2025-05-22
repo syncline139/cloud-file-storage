@@ -4,6 +4,7 @@ import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.*;
 import com.example.project.services.StorageService;
+import com.example.project.utils.Resource;
 import io.minio.*;
 import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,7 +37,7 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = bucketExists();
         String normalizedPath = normalizedPath(path);
         validatePath(path, bucketName);
-        return isDirectoryOrFile(normalizedPath, bucketName);
+        return getResourceMetadata(normalizedPath, bucketName);
     }
     @Override
     public void removeResource(String path) {
@@ -45,7 +46,7 @@ public class StorageServiceImpl implements StorageService {
         validatePath(path, bucketName);
         String normalizedPath = normalizedPath(path);
         validatePath(path,bucketName);
-        ResourceInfoResponse resourceInfo = isDirectoryOrFile(normalizedPath, bucketName);
+        ResourceInfoResponse resourceInfo = getResourceMetadata(normalizedPath, bucketName);
 
         if (!resourceInfo.name().endsWith("/")) {
             deleteFile(normalizedPath, bucketName);
@@ -65,7 +66,7 @@ public class StorageServiceImpl implements StorageService {
         }
 
         String normalizedPath = normalizedPath(path);
-        ResourceInfoResponse resourceInfo = isDirectoryOrFile(normalizedPath, bucketName);
+        ResourceInfoResponse resourceInfo = getResourceMetadata(normalizedPath, bucketName);
 
         if (resourceInfo.name().endsWith("/")) {
             downloadDirectory(normalizedPath,bucketName, response);
@@ -89,7 +90,7 @@ public class StorageServiceImpl implements StorageService {
         if (isResourceLocked(normalizedNewPath, bucketName)) {
             throw new ResourceAlreadyExistsException(normalizedNewPath);
         }
-        ResourceInfoResponse directoryOrFile = isDirectoryOrFile(normalizedOldPath, bucketName);
+        ResourceInfoResponse directoryOrFile = getResourceMetadata(normalizedOldPath, bucketName);
 
 
         if (!directoryOrFile.name().endsWith("/")) {
@@ -207,75 +208,12 @@ public class StorageServiceImpl implements StorageService {
     public List<ResourceInfoResponse> directoryContents(String path) {
         log.info("Вход в метод 'directoryContents', путь: {}", path);
         String bucketName = bucketExists();
-
         String normalizedPath = normalizedPath(path);
-        log.debug("Нормализованный путь: {}", normalizedPath);
-        boolean pathFile = false;
-        try {
-            if (!normalizedPath.isEmpty()) {
-                minioClient.statObject(StatObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(normalizedPath)
-                        .build());
-                log.error("Путь '{}' является файлом", path);
-                pathFile = true;
-            }
-        } catch (Exception e) {
-            log.info("Путь '{}' является директорией или не существует", path);
-        }
 
-        Iterable<Result<Item>> results;
-        if (normalizedPath.isEmpty()) {
-            results = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(bucketName)
-                    .recursive(false)
-                    .build());
-        } else {
-            results = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(bucketName)
-                    .prefix(normalizedPath + "/")
-                    .recursive(false)
-                    .build());
-        }
+        Resource directoryOrFile = identifyResourceType(normalizedPath, bucketName);
+        Iterable<Result<Item>> results = listTopLevelOrDirectory(bucketName, normalizedPath);
 
-        List<ResourceInfoResponse> infoResponseList = new ArrayList<>();
-        boolean found = normalizedPath.isEmpty();
-        for (Result<Item> result : results) {
-            try {
-                Item item = result.get();
-                String objectName = item.objectName();
-
-                if (!found && !normalizedPath.isEmpty()) {
-                    found = objectName.startsWith(normalizedPath + "/");
-                }
-
-                String parentPath = normalizedPath.isEmpty() ? "" : normalizedPath + "/";
-
-                if (objectName.endsWith("/")) {
-                    String name = objectName.substring(parentPath.length());
-                    if (!name.isEmpty()) {
-                        infoResponseList.add(ResourceInfoResponse.forDirectory(parentPath, name));
-                    }
-                } else {
-                    String name = objectName.substring(parentPath.length());
-                    infoResponseList.add(ResourceInfoResponse.forFile(parentPath, name, item.size()));
-                }
-
-            } catch (Exception e) {
-                log.error("Ошибка при обработке объекта: {}", e.getMessage());
-            }
-        }
-
-        if (pathFile) {
-            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
-        }
-
-        if (!found) {
-            throw new PathNotFoundException("Папка не существует");
-        }
-
-        log.debug("Результат: {}", infoResponseList);
-        return infoResponseList;
+        return getFolderContent(normalizedPath, results, directoryOrFile);
     }
     @Override
     public ResourceInfoResponse createEmptyFolder(String path) {
@@ -414,24 +352,40 @@ public class StorageServiceImpl implements StorageService {
         return !normalizedPath.isEmpty() ? normalizedPath : "";
     }
 
-    private Iterable<Result<Item>> listObjectsRecursiveFalse(String bucketName, String path) {
-        return minioClient.listObjects(
-                ListObjectsArgs.builder()
+    private Iterable<Result<Item>> listDirectoryContents(String bucketName, String path) {
+        return minioClient.listObjects(ListObjectsArgs.builder()
                         .bucket(bucketName)
                         .prefix(path)
                         .recursive(false)
-                        .build()
-        );
+                .build());
     }
 
-    private Iterable<Result<Item>> listObjectsRecursiveTrue(String bucketName) {
+    private Iterable<Result<Item>> listTopLevelOrDirectory(String bucketName, String normalizedPath) {
+        Iterable<Result<Item>> results;
+        if (normalizedPath.isEmpty()) {
+            results = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .recursive(false)
+                    .build());
+        } else {
+            results = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .prefix(normalizedPath + "/")
+                    .recursive(false)
+                    .build());
+        }
+
+        return results;
+    }
+
+    private Iterable<Result<Item>> listAllObjects(String bucketName) {
         return minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(bucketName)
                 .recursive(true)
                 .build());
     }
 
-    private ResourceInfoResponse isDirectoryOrFile(String normalizedPath, String bucketName) {
+    private ResourceInfoResponse getResourceMetadata(String normalizedPath, String bucketName) {
         try {
             StatObjectResponse object = minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
@@ -455,6 +409,22 @@ public class StorageServiceImpl implements StorageService {
         throw new PathNotFoundException("Ресурс не найден");
     }
 
+    private Resource identifyResourceType(String normalizedPath, String bucketName) {
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizedPath)
+                    .build());
+            return Resource.FILE;
+        } catch (Exception e) {
+            //
+        }
+        if (directoryExists(bucketName,normalizedPath)) {
+            return Resource.DIRECTORY;
+        }
+        throw new PathNotFoundException("Папка не существует");
+    }
+
     private String parentPathByFullPath(String normalizedPath) {
         return normalizedPath.contains("/")
                 ? normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1)
@@ -462,7 +432,7 @@ public class StorageServiceImpl implements StorageService {
     }
 
     private boolean directoryExists(String bucketName, String path) {
-        Iterable<Result<Item>> results = listObjectsRecursiveFalse(bucketName, path);
+        Iterable<Result<Item>> results = listDirectoryContents(bucketName, path);
         for (Result<Item> r : results) {
             Item item;
             try {
@@ -703,5 +673,41 @@ public class StorageServiceImpl implements StorageService {
             }
         }
         return  responses;
+    }
+
+    private List<ResourceInfoResponse> getFolderContent(String normalizedPath, Iterable<Result<Item>> results, Resource directoryOrFile) {
+        List<ResourceInfoResponse> infoResponseList = new ArrayList<>();
+        boolean found = normalizedPath.isEmpty();
+        for (Result<Item> result : results) {
+            try {
+                Item item = result.get();
+                String objectName = item.objectName();
+
+                if (!found && !normalizedPath.isEmpty()) {
+                    found = objectName.startsWith(normalizedPath + "/");
+                }
+
+                String parentPath = normalizedPath.isEmpty() ? "" : normalizedPath + "/";
+
+                if (objectName.endsWith("/")) {
+                    String name = objectName.substring(parentPath.length());
+                    if (!name.isEmpty()) {
+                        infoResponseList.add(ResourceInfoResponse.forDirectory(parentPath, name));
+                    }
+                } else {
+                    String name = objectName.substring(parentPath.length());
+                    infoResponseList.add(ResourceInfoResponse.forFile(parentPath, name, item.size()));
+                }
+
+            } catch (Exception e) {
+                log.error("Ошибка при обработке объекта: {}", e.getMessage());
+            }
+        }
+
+        if (directoryOrFile == Resource.FILE) {
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
+        }
+
+        return infoResponseList;
     }
 }
