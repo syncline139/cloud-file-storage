@@ -129,13 +129,16 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public List<ResourceInfoResponse> searchResource(String query) {
-        // todo | не ищет директорию
+        // todo | плохо ищет директорию
         log.info("Вошли в метод 'searchResource'");
         String bucketName = bucketExists();
 
-        String normalizedQuery = normalizedPath(query);
+        String normalizedQuery = query.replaceAll("^/+|/+$", "");
 
-        Iterable<Result<Item>> results = listObjectsRecursiveTrue(bucketName);
+        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(bucketName)
+                .recursive(true)
+                .build());
 
         HashMap<String, Item> dirs = new HashMap<>();
         HashMap<String, Item> files = new HashMap<>();
@@ -150,17 +153,14 @@ public class StorageServiceImpl implements StorageService {
                 continue;
             }
             if (objectName.contains(normalizedQuery)) {
-
-                if (objectName.contains("/") && objectName.endsWith("/")) {
-                        String[] brokenPath =objectName.split("/");
-                        for (String br : brokenPath){
-                            dirs.put(br, item);
-                        }
-                }
+                if (objectName.endsWith("/")) {
+                    dirs.put(objectName, item);
                 } else {
                     files.put(objectName, item);
                 }
             }
+
+        }
 
         List<ResourceInfoResponse> responseList = new ArrayList<>();
 
@@ -169,7 +169,7 @@ public class StorageServiceImpl implements StorageService {
             String fullPath = item.objectName();
             String trimmed = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
             String name = trimmed.substring(trimmed.lastIndexOf('/') + 1) + "/";
-            responseList.add(ResourceInfoResponse.forDirectory(fullPath, name));
+            responseList.add(ResourceInfoResponse.forDirectory(fullPath.substring(0,fullPath.lastIndexOf("/")), name));
         }
         for (Map.Entry<String, Item> entry : files.entrySet()) {
             Item item = entry.getValue();
@@ -189,6 +189,7 @@ public class StorageServiceImpl implements StorageService {
     }
 
 
+
     @Override
     public Set<ResourceInfoResponse> uploadResource(String path, MultipartFile[] objects){
         log.info("Вошли в метод 'uploadResource'");
@@ -199,41 +200,7 @@ public class StorageServiceImpl implements StorageService {
             normalizedPath += "/";
         }
 
-        if (objects.length == 0){
-            log.error("Массив файлов оказался пустым");
-            throw new MissingOrInvalidPathException("Невалидное тело запроса");
-        }
-
-        Set<ResourceInfoResponse> responses = new HashSet<>();
-
-        for (MultipartFile file : objects) {
-            String fullPath = normalizedPath + file.getOriginalFilename();
-            try {
-                minioClient.statObject(StatObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(fullPath)
-                        .build());
-                throw new ResourceAlreadyExistsException(fullPath);
-            } catch (ResourceAlreadyExistsException e) {
-                log.error("Файл '{}' уже сущестует", file.getOriginalFilename());
-                throw new ResourceAlreadyExistsException(fullPath);
-            } catch (Exception e) {
-                //
-            }
-
-            try {
-                minioClient.putObject(PutObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(fullPath)
-                        .stream(file.getInputStream(), file.getSize(), -1)
-                        .contentType(file.getContentType())
-                        .build());
-                responses.add(ResourceInfoResponse.forFile(normalizedPath, file.getOriginalFilename(), file.getSize()));
-            } catch (Exception e) {
-                log.error("Ошибка при загрузке файла в MinIO: {}", e.getMessage());
-            }
-        }
-        return responses;
+        return uploadResourceToBucket(bucketName,normalizedPath,objects);
     }
 
     @Override
@@ -702,5 +669,39 @@ public class StorageServiceImpl implements StorageService {
             return true;
         }
         return false;
+    }
+
+    private Set<ResourceInfoResponse> uploadResourceToBucket(String bucketName, String normalizedPath, MultipartFile[] objects) {
+
+        Set<ResourceInfoResponse> responses = new HashSet<>();
+
+        for (MultipartFile file : objects) {
+            String fullPath = normalizedPath + file.getOriginalFilename();
+            try {
+                minioClient.statObject(StatObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fullPath)
+                        .build());
+                throw new ResourceAlreadyExistsException(fullPath);
+            } catch (ResourceAlreadyExistsException e) {
+                log.error("Файл '{}' уже сущестует", file.getOriginalFilename());
+                throw new ResourceAlreadyExistsException(fullPath);
+            } catch (Exception e) {
+                //
+            }
+
+            try {
+                minioClient.putObject(PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fullPath)
+                        .stream(file.getInputStream(), file.getSize(), -1)
+                        .contentType(file.getContentType())
+                        .build());
+                responses.add(ResourceInfoResponse.forFile(normalizedPath, file.getOriginalFilename(), file.getSize()));
+            } catch (Exception e) {
+                log.error("Ошибка при загрузке файла в MinIO: {}", e.getMessage());
+            }
+        }
+        return  responses;
     }
 }
