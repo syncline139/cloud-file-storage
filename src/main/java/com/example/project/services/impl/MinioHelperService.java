@@ -34,16 +34,21 @@ public class MinioHelperService {
 
     private final MinioClient minioClient;
 
-    public void zip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) throws IOException {
-        ZipEntry zipEntry = new ZipEntry(relativePath);
-        zipOut.putNextEntry(zipEntry);
+    public void buildZip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) {
+        try {
+            ZipEntry zipEntry = new ZipEntry(relativePath);
+            zipOut.putNextEntry(zipEntry);
 
-        byte[] bytes = new byte[1024];
-        int length;
-        while ((length = fileToZip.read(bytes)) >= 0) {
-            zipOut.write(bytes, 0, length);
+            byte[] bytes = new byte[1024];
+            int length;
+            while ((length = fileToZip.read(bytes)) >= 0) {
+                zipOut.write(bytes, 0, length);
+            }
+            zipOut.closeEntry();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Произошла ошибка при сборке файлов в zip",e);
         }
-        zipOut.closeEntry();
     }
 
     public String bucketExists() {
@@ -59,6 +64,7 @@ public class MinioHelperService {
             log.error("Бакета с именем {} не существует!", bucketName);
             throw new BucketNotFoundException(String.format("Бакета '%s' не существует", bucketName));
         }
+
         return bucketName;
     }
 
@@ -67,12 +73,14 @@ public class MinioHelperService {
         if (authentication == null || authentication.getName().equals("anonymousUser")) {
             throw new AuthenticationCredentialsNotFoundException();
         }
+
         return authentication.getName();
     }
 
     public String normalizedPath(String path) {
         String normalizedPath = path.replaceAll("^/+|/+$", "").trim();
         log.info("Путь прошел нормализацию: {}  -->  {}",path,normalizedPath);
+
         return !normalizedPath.isEmpty() ? normalizedPath : "";
     }
 
@@ -120,7 +128,7 @@ public class MinioHelperService {
             log.info("Путь {} был определён как файл", normalizedPath);
             return ResourceInfoResponse.forFile(parentPath, name, object.size());
         } catch (Exception e) {
-            //
+           // затычка
         }
         if (directoryExists(bucketName,normalizedPath)) {
             String name = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1)  + "/";
@@ -141,11 +149,12 @@ public class MinioHelperService {
                     .build());
             return Resource.FILE;
         } catch (Exception e) {
-            //
+            // затычка
         }
         if (directoryExists(bucketName,normalizedPath)) {
             return Resource.DIRECTORY;
         }
+
         throw new PathNotFoundException("Папка не существует");
     }
 
@@ -185,7 +194,8 @@ public class MinioHelperService {
                     .object(path)
                     .build());
         } catch (Exception e) {
-            log.info("Во время удаление файла произошла ошибка");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Произошла ошибка при удаление ресурса", e);
         }
     }
 
@@ -265,7 +275,7 @@ public class MinioHelperService {
                             .build())) {
 
                         String relativePath = objectName.substring(normalizedPath.length() + 1);
-                        zip(zipOut, fileToZip, relativePath);
+                        buildZip(zipOut, fileToZip, relativePath);
                     }
                 }
                 zipOut.finish();
@@ -339,7 +349,7 @@ public class MinioHelperService {
         }
     }
 
-    public boolean isResourceLocked(String normalizedNewPath, String bucketName) {
+    public boolean doesResourceExist(String normalizedNewPath, String bucketName) {
         try {
             minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
@@ -379,9 +389,8 @@ public class MinioHelperService {
                 log.error("Файл '{}' уже сущестует", file.getOriginalFilename());
                 throw new ResourceAlreadyExistsException(fullPath);
             } catch (Exception e) {
-                //
+                // затыка
             }
-
             try {
                 minioClient.putObject(PutObjectArgs.builder()
                         .bucket(bucketName)
@@ -399,7 +408,9 @@ public class MinioHelperService {
 
     public List<ResourceInfoResponse> getFolderContent(String normalizedPath, Iterable<Result<Item>> results, Resource directoryOrFile) {
         List<ResourceInfoResponse> infoResponseList = new ArrayList<>();
+
         boolean found = normalizedPath.isEmpty();
+
         for (Result<Item> result : results) {
             try {
                 Item item = result.get();

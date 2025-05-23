@@ -10,12 +10,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.io.*;
 import java.util.*;
 
 @Service
@@ -23,8 +20,6 @@ import java.util.*;
 @RequiredArgsConstructor
 @Primary
 public class StorageServiceImpl implements StorageService {
-
-    private final MinioClient minioClient;
 
     private final MinioHelperService minioHelperService;
 
@@ -34,15 +29,16 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = minioHelperService.bucketExists();
         String normalizedPath = minioHelperService.normalizedPath(path);
         minioHelperService.validatePath(path, bucketName);
+
         return minioHelperService.getResourceMetadata(normalizedPath, bucketName);
     }
+
     @Override
     public void removeResource(String path) {
         log.info("Вход в 'removeResource', путь: {}", path);
         String bucketName = minioHelperService.bucketExists();
         minioHelperService.validatePath(path, bucketName);
         String normalizedPath = minioHelperService.normalizedPath(path);
-        minioHelperService.validatePath(path,bucketName);
         ResourceInfoResponse resourceInfo = minioHelperService.getResourceMetadata(normalizedPath, bucketName);
 
         if (!resourceInfo.name().endsWith("/")) {
@@ -75,20 +71,18 @@ public class StorageServiceImpl implements StorageService {
     @Override
     public ResourceInfoResponse moverOrRename(String oldPath, String newPath) {
         log.info("Вошел в метод 'moverOrRename', старый путь: '{}', новый путь: '{}'", oldPath, newPath);
-
         String bucketName = minioHelperService.bucketExists();
-
         String normalizedOldPath = minioHelperService.normalizedPath(oldPath);
         String normalizedNewPath = minioHelperService.normalizedPath(newPath);
 
         if (oldPath.isEmpty() || newPath.isEmpty()) {
             throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
         }
-        if (minioHelperService.isResourceLocked(normalizedNewPath, bucketName)) {
+        if (minioHelperService.doesResourceExist(normalizedNewPath, bucketName)) {
             throw new ResourceAlreadyExistsException(normalizedNewPath);
         }
-        ResourceInfoResponse directoryOrFile = minioHelperService.getResourceMetadata(normalizedOldPath, bucketName);
 
+        ResourceInfoResponse directoryOrFile = minioHelperService.getResourceMetadata(normalizedOldPath, bucketName);
 
         if (!directoryOrFile.name().endsWith("/")) {
             minioHelperService.renameOrMoveFile(normalizedNewPath, normalizedOldPath, bucketName);
@@ -127,16 +121,11 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public List<ResourceInfoResponse> searchResource(String query) {
-        // todo | плохо ищет директорию
+        // todo поиск плохо работает, в конце доделать его
         log.info("Вошли в метод 'searchResource'");
         String bucketName = minioHelperService.bucketExists();
-
-        String normalizedQuery = query.replaceAll("^/+|/+$", "");
-
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(bucketName)
-                .recursive(true)
-                .build());
+        String normalizedQuery = minioHelperService.normalizedPath(query);
+        Iterable<Result<Item>> results = minioHelperService.listAllObjects(bucketName);
 
         HashMap<String, Item> dirs = new HashMap<>();
         HashMap<String, Item> files = new HashMap<>();
@@ -165,9 +154,10 @@ public class StorageServiceImpl implements StorageService {
         for (Map.Entry<String, Item> entry : dirs.entrySet()) {
             Item item = entry.getValue();
             String fullPath = item.objectName();
+            String parentPath = fullPath.substring(0, fullPath.lastIndexOf("/"));
             String trimmed = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
             String name = trimmed.substring(trimmed.lastIndexOf('/') + 1) + "/";
-            responseList.add(ResourceInfoResponse.forDirectory(fullPath.substring(0,fullPath.lastIndexOf("/")), name));
+            responseList.add(ResourceInfoResponse.forDirectory(parentPath.substring(0, parentPath.lastIndexOf("/") + 1), name));
         }
         for (Map.Entry<String, Item> entry : files.entrySet()) {
             Item item = entry.getValue();
@@ -182,18 +172,17 @@ public class StorageServiceImpl implements StorageService {
             log.warn("Невалидный или отсутствующий поисковый запрос");
             throw new MissingOrInvalidPathException("Невалидный или отсутствующий поисковый запрос");
         }
+
         log.info("Ресурс найден");
         return responseList;
     }
-
-
 
     @Override
     public Set<ResourceInfoResponse> uploadResource(String path, MultipartFile[] objects){
         log.info("Вошли в метод 'uploadResource'");
         String bucketName = minioHelperService.bucketExists();
-
         String normalizedPath = minioHelperService.normalizedPath(path);
+
         if (!normalizedPath.isEmpty() && !normalizedPath.endsWith("/")) {
             normalizedPath += "/";
         }
@@ -206,12 +195,12 @@ public class StorageServiceImpl implements StorageService {
         log.info("Вход в метод 'directoryContents', путь: {}", path);
         String bucketName = minioHelperService.bucketExists();
         String normalizedPath = minioHelperService.normalizedPath(path);
-
         Resource directoryOrFile = minioHelperService.identifyResourceType(normalizedPath, bucketName);
         Iterable<Result<Item>> results = minioHelperService.listTopLevelOrDirectory(bucketName, normalizedPath);
 
         return minioHelperService.getFolderContent(normalizedPath, results, directoryOrFile);
     }
+
     @Override
     public ResourceInfoResponse createEmptyFolder(String path) {
         String bucketName = minioHelperService.bucketExists();
