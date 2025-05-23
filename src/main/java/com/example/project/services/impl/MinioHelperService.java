@@ -9,11 +9,14 @@ import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -428,5 +431,47 @@ public class MinioHelperService {
         }
 
         return infoResponseList;
+    }
+
+    public void parentDirectoryExists(String parentFolder, String bucketName) {
+        if (!parentFolder.isEmpty()) {
+            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .recursive(false)
+                    .prefix(parentFolder)
+                    .build());
+
+            boolean parentExists = false;
+            for (Result<Item> r : results) {
+                Item item;
+                try {
+                    item = r.get();
+                } catch (Exception e) {
+                    continue;
+                }
+
+                if (item.objectName().equals(parentFolder)) {
+                    parentExists = true;
+                    break;
+                }
+            }
+
+            if (!parentExists) {
+                throw new PathNotFoundException("Родительская папка не существует");
+            }
+        }
+    }
+
+    public void createDirectory(String normalizedPath, String bucketName) {
+        try {
+            minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(normalizedPath + "/")
+                    .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                    .build());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Ошибка при создании папки: " + e.getMessage(), e);
+        }
     }
 }

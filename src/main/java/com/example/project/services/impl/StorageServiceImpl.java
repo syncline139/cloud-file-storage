@@ -217,89 +217,22 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = minioHelperService.bucketExists();
         String normalizedPath = minioHelperService.normalizedPath(path);
 
-        // Проверяем, существует ли папка
-        try {
-            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(bucketName)
-                    .prefix(normalizedPath + "/")
-                    .recursive(false)
-                    .build());
+        if (minioHelperService.directoryExists(bucketName, path)) {
+            throw new ResourceAlreadyExistsException(normalizedPath);
+        }
+        String parentFolder = minioHelperService.parentPathByFullPath(normalizedPath);
+        if (!parentFolder.isEmpty()) {
+            minioHelperService.parentDirectoryExists(parentFolder, bucketName);
+        }
 
-            for (Result<Item> itemResult : results) {
-                Item item = itemResult.get();
-                if (item.objectName().equals(normalizedPath + "/")) {
-                    throw new Exception();
-                }
-            }
-        } catch (Exception e) {
+        if (minioHelperService.directoryExists(bucketName,normalizedPath)) {
             throw new ResourceAlreadyExistsException(normalizedPath);
         }
 
-        // Проверяем, что родительская папка существует в бакете
-        String parentFolder = path.contains("/")
-                ? normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1)
-                : "";
-
-        if (!parentFolder.isEmpty()) {
-            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(bucketName)
-                    .recursive(false)
-                    .prefix(parentFolder)
-                    .build());
-
-            boolean parentExists = false;
-            for (Result<Item> r : results) {
-                Item item;
-                try {
-                    item = r.get();
-                } catch (Exception e) {
-                    continue;
-                }
-
-                if (item.objectName().equals(parentFolder)) {
-                    parentExists = true;
-                    break; // Если нашли, выходим из цикла
-                }
-            }
-
-            if (!parentExists) {
-                throw new PathNotFoundException("Родительская папка не существует");
-            }
-        }
-
-        // Папка уже существует
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(bucketName)
-                .recursive(false)
-                .prefix(normalizedPath + "/")
-                .build());
-
-        for (Result<Item> r : results) {
-            Item item;
-            try {
-                item = r.get();
-            } catch (Exception e) {
-                continue;
-            }
-            if (item.objectName().equals(normalizedPath + "/")) {
-                throw new ResourceAlreadyExistsException(normalizedPath);
-            }
-        }
         if (path.isEmpty()) {
             throw new MissingOrInvalidPathException("Невалидный или отсутсвующий путь");
         }
-
-        // Создаём пустую папку
-        try {
-            minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(normalizedPath + "/")
-                    .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
-                    .build());
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Ошибка при создании папки: " + e.getMessage(), e);
-        }
+        minioHelperService.createDirectory(normalizedPath, bucketName);
 
         String finalPath = normalizedPath.isEmpty() ? "" : normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1);
         String name = normalizedPath.isEmpty() ? "" : normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1);
