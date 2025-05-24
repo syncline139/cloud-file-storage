@@ -12,8 +12,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.modelmapper.internal.bytebuddy.implementation.bind.annotation.Empty;
+import org.springframework.data.redis.core.RedisHash;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,7 +24,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class User implements Serializable {
 
     private static final int LOGIN_MIN_LENGTH = 5;
     private static final int LOGIN_MAX_LENGTH = 30;
