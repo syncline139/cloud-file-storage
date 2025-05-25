@@ -5,5 +5,4 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
 
 @Configuration
 @EnableRedisHttpSession(maxInactiveIntervalInSeconds = 3600 * 24) // 24 часа
-public class SessionConfig {
-}
+public class SessionConfig {}

@@ -11,7 +11,7 @@ target/
 .project
 .env
 .settings
-application.yml
+src/main/resources/application.yml
 .springBeans
 .sts4-cache
 

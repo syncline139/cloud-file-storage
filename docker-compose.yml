@@ -12,6 +12,7 @@ services:
       - ~/.m2:/root/.m2
     environment:
       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
@@ -22,9 +23,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-
+      redis:
+        condition: service_healthy
   db:
-    image: postgres:17.4
+    image: postgres:latest
     container_name: postgres
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -50,7 +52,7 @@ services:
         condition: service_healthy
 
   frontend:
-    image: dispersionv/cloud-storage-frontend-dev:latest
+    image: dispersionv/cloud-file-storage-frontend-dev:latest
     container_name: cloud-file-storage-frontend
     ports:
       - "80:80"
@@ -80,6 +82,11 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 
 volumes:

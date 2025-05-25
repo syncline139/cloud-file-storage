@@ -23,7 +23,11 @@ import org.springframework.web.cors.CorsConfiguration;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    public static final String ORIGIN = "http://localhost";
+    public static final String ORIGIN_LOCAL = "http://localhost";
+    public static final String ORIGIN_LOCAL_80 = "http://localhost:80";
+    public static final String ORIGIN_127 = "http://127.0.0.1";
+    public static final String ORIGIN_127_80 = "http://127.0.0.1:80";
+
     private final UserDetailsServiceImpl userDetailsService;
 
     @Bean
@@ -32,7 +36,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.addAllowedOrigin(ORIGIN);
+                    config.addAllowedOrigin(ORIGIN_LOCAL);
+                    config.addAllowedOrigin(ORIGIN_LOCAL_80);
+                    config.addAllowedOrigin(ORIGIN_127);
+                    config.addAllowedOrigin(ORIGIN_127_80);
                     config.addAllowedMethod("*");
                     config.addAllowedHeader("*");
                     config.setAllowCredentials(true);
