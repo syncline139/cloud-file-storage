@@ -508,15 +508,23 @@ public class MinioHelperService {
             }
 
             String object = objectName;
-            int lastSlashIndex = objectName.lastIndexOf("/");
-            if (lastSlashIndex != -1) {
-                object = objectName.substring(lastSlashIndex + 1);
-            }
+            int  lastSlashIndex = objectName.lastIndexOf("/");
+
             if (object.endsWith("/")) {
                 object = object.substring(0, object.length() - 1);
+            } else if (lastSlashIndex != -1) {
+                object = objectName.substring(lastSlashIndex + 1);
             }
 
-            if (object.toLowerCase().contains(normalizedQuery.toLowerCase())) {
+            String normalizedObject;
+            if (object.contains("/")) {
+                normalizedObject = object.substring(object.lastIndexOf("/"));
+            }else if (directoryExists(bucketExists(), object + "/")){
+                normalizedObject = object;
+            }else {
+                normalizedObject = object;
+            }
+            if (normalizedObject.toLowerCase().contains(normalizedQuery.toLowerCase())) {
                 if (objectName.endsWith("/")) {
                     dirs.put(objectName, item);
                 } else {
