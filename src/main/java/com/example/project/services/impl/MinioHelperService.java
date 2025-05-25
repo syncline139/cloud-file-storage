@@ -139,9 +139,10 @@ public class MinioHelperService {
     }
 
     public Resource identifyResourceType(String normalizedPath, String bucketName) {
-        if (isBucketEmpty(bucketName)) {
-            return null;
+        if (normalizedPath.isEmpty()) {
+            return Resource.DIRECTORY;
         }
+
         try {
             minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
@@ -149,20 +150,14 @@ public class MinioHelperService {
                     .build());
             return Resource.FILE;
         } catch (Exception e) {
-            // затычка
+            // игнорим
         }
-        if (directoryExists(bucketName,normalizedPath)) {
+
+        if (directoryExists(bucketName, normalizedPath)) {
             return Resource.DIRECTORY;
         }
 
-            throw new PathNotFoundException("Папка не существует");
-    }
-    private boolean isBucketEmpty(String bucketName) {
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(bucketName)
-                .recursive(false)
-                .build());
-        return !results.iterator().hasNext();
+        throw new PathNotFoundException("Папка не существует");
     }
     public String parentPathByFullPath(String normalizedPath) {
         return normalizedPath.contains("/")
