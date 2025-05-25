@@ -121,60 +121,12 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public List<ResourceInfoResponse> searchResource(String query) {
-        // todo поиск плохо работает, в конце доделать его
         log.info("Вошли в метод 'searchResource'");
         String bucketName = minioHelperService.bucketExists();
         String normalizedQuery = minioHelperService.normalizedPath(query);
         Iterable<Result<Item>> results = minioHelperService.listAllObjects(bucketName);
 
-        HashMap<String, Item> dirs = new HashMap<>();
-        HashMap<String, Item> files = new HashMap<>();
-
-        for (Result<Item> r : results) {
-            Item item;
-            String objectName;
-            try {
-                item = r.get();
-                objectName = item.objectName();
-            } catch (Exception e) {
-                continue;
-            }
-            if (objectName.contains(normalizedQuery)) {
-                if (objectName.endsWith("/")) {
-                    dirs.put(objectName, item);
-                } else {
-                    files.put(objectName, item);
-                }
-            }
-
-        }
-
-        List<ResourceInfoResponse> responseList = new ArrayList<>();
-
-        for (Map.Entry<String, Item> entry : dirs.entrySet()) {
-            Item item = entry.getValue();
-            String fullPath = item.objectName();
-            String parentPath = fullPath.substring(0, fullPath.lastIndexOf("/"));
-            String trimmed = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
-            String name = trimmed.substring(trimmed.lastIndexOf('/') + 1) + "/";
-            responseList.add(ResourceInfoResponse.forDirectory(parentPath.substring(0, parentPath.lastIndexOf("/") + 1), name));
-        }
-        for (Map.Entry<String, Item> entry : files.entrySet()) {
-            Item item = entry.getValue();
-            String fullPath = item.objectName();
-            String name = item.objectName().substring(item.objectName().lastIndexOf('/') + 1);
-            Long size = item.size();
-            String path = fullPath.substring(0,fullPath.lastIndexOf("/") + 1);
-            responseList.add(ResourceInfoResponse.forFile(path, name,size));
-        }
-
-        if (responseList.isEmpty()) {
-            log.warn("Невалидный или отсутствующий поисковый запрос");
-            throw new MissingOrInvalidPathException("Невалидный или отсутствующий поисковый запрос");
-        }
-
-        log.info("Ресурс найден");
-        return responseList;
+        return minioHelperService.resultSearch(results, normalizedQuery);
     }
 
     @Override

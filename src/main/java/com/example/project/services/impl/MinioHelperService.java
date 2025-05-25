@@ -20,10 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -484,5 +481,75 @@ public class MinioHelperService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Ошибка при создании папки: " + e.getMessage(), e);
         }
+    }
+
+    public List<ResourceInfoResponse> resultSearch(Iterable<Result<Item>> results, String normalizedQuery) {
+        if (normalizedQuery == null || normalizedQuery.trim().isEmpty() ||
+                !normalizedQuery.matches(".*[a-zA-Z0-9-_].*") && normalizedQuery.matches("^[./,\\\\:*?\"<>|]+$")) {
+            log.warn("Невалидный или отсутствующий поисковый запрос");
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий поисковый запрос");
+        }
+
+        HashMap<String, Item> dirs = new HashMap<>();
+        HashMap<String, Item> files = new HashMap<>();
+
+        for (Result<Item> r : results) {
+            Item item;
+            String objectName;
+            try {
+                item = r.get();
+                objectName = item.objectName();
+            } catch (Exception e) {
+                continue;
+            }
+
+            String object = objectName;
+            int lastSlashIndex = objectName.lastIndexOf("/");
+            if (lastSlashIndex != -1) {
+                object = objectName.substring(lastSlashIndex + 1);
+            }
+            if (object.endsWith("/")) {
+                object = object.substring(0, object.length() - 1);
+            }
+
+            if (object.toLowerCase().contains(normalizedQuery.toLowerCase())) {
+                if (objectName.endsWith("/")) {
+                    dirs.put(objectName, item);
+                } else {
+                    files.put(objectName, item);
+                }
+            }
+        }
+
+        List<ResourceInfoResponse> responseList = new ArrayList<>();
+
+        for (Map.Entry<String, Item> entry : dirs.entrySet()) {
+            responseList.add(buildDirectoryResponse(entry.getKey()));
+        }
+        for (Map.Entry<String, Item> entry : files.entrySet()) {
+            responseList.add(buildFileResponse(entry.getValue()));
+        }
+
+        if (responseList.isEmpty()) {
+            log.warn("Невалидный или отсутствующий поисковый запрос");
+            throw new MissingOrInvalidPathException("Невалидный или отсутствующий поисковый запрос");
+        }
+        log.info("Ресурс найден");
+        return responseList;
+    }
+
+    private ResourceInfoResponse buildDirectoryResponse(String fullPath) {
+        String parentPath = fullPath.substring(0, fullPath.lastIndexOf("/"));
+        String trimmed = fullPath.endsWith("/") ? fullPath.substring(0, fullPath.length() - 1) : fullPath;
+        String name = trimmed.substring(trimmed.lastIndexOf('/') + 1) + "/";
+        return ResourceInfoResponse.forDirectory(parentPath.substring(0, parentPath.lastIndexOf("/") + 1), name);
+    }
+
+    private ResourceInfoResponse buildFileResponse(Item item) {
+        String fullPath = item.objectName();
+        String name = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+        Long size = item.size();
+        String path = fullPath.substring(0, fullPath.lastIndexOf("/") + 1);
+        return ResourceInfoResponse.forFile(path, name, size);
     }
 }

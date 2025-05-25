@@ -12,7 +12,7 @@ import static org.testcontainers.utility.DockerImageName.parse;
 @TestConfiguration
 public class TestBeans {
 
-    public static final String POSTGRES_IMAGE = "postgres:17.4";
+    public static final String POSTGRES_IMAGE = "postgres:latest";
     public static final String MINIO_IMAGE = "minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1";
 
     @Bean
