@@ -101,20 +101,32 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void createBucketByUsername(User user) {
+        String bucketName = toValidBucketName(user.getUsername(), user.getId());
         try {
-            if (!minioClient.bucketExists(BucketExistsArgs.builder()
-                    .bucket(user.getUsername())
-                    .build())) {
-                minioClient.makeBucket(MakeBucketArgs.builder()
-                        .bucket(user.getUsername())
-                        .build());
-                log.info("Бакет с названием '{}' создан", user.getUsername());
+            boolean exists = minioClient.bucketExists(
+                    BucketExistsArgs.builder().bucket(bucketName).build()
+            );
+
+            if (!exists) {
+                minioClient.makeBucket(
+                        MakeBucketArgs.builder().bucket(bucketName).build()
+                );
+                log.info("Бакет с названием '{}' создан", bucketName);
             } else {
-                log.info("Бакет с названием '{}' уже существует", user.getUsername());
+                log.info("Бакет с названием '{}' уже существует", bucketName);
             }
         } catch (Exception e) {
             log.error("Не удалось создать бакет для пользователя '{}': {}", user.getUsername(), e.toString());
             throw new BucketNotFoundException("Не удалось создать бакет для нового пользователя");
         }
+    }
+
+    public static String toValidBucketName(String username, int userId) {
+        return username
+                .toLowerCase()
+                .replaceAll("[^a-z0-9-]", "-")
+                .replaceAll("^-+", "")
+                .replaceAll("-+$", "")
+                + "-" + userId;
     }
 }

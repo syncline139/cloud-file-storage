@@ -3,6 +3,7 @@ package com.example.project.services.impl;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.*;
+import com.example.project.repositories.UserRepository;
 import com.example.project.utils.Resource;
 import io.minio.*;
 import io.minio.messages.Item;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +32,7 @@ import java.util.zip.ZipOutputStream;
 public class MinioHelperService {
 
     private final MinioClient minioClient;
+    private final UserRepository userRepository;
 
     public void buildZip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) {
         try {
@@ -49,7 +52,7 @@ public class MinioHelperService {
     }
 
     public String bucketExists() {
-        String bucketName = activeUserName();
+        String bucketName = getActiveUserBucketName();
         log.info("Проверяем бакет: {}", bucketName);
         try {
             if (minioClient.bucketExists(BucketExistsArgs.builder()
@@ -73,6 +76,15 @@ public class MinioHelperService {
 
         return authentication.getName();
     }
+
+    public String getActiveUserBucketName() {
+        String username = activeUserName();
+        int userId = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"))
+                .getId();
+        return AuthServiceImpl.toValidBucketName(username, userId);
+    }
+
 
     public String normalizedPath(String path) {
         String normalizedPath = path.replaceAll("^/+|/+$", "").trim();

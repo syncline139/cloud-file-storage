@@ -23,7 +23,7 @@ public class UserDTO {
     @Schema(description = "Уникальный логин", example = "user_1")
     @NotEmpty(message = "Логин не должен быть пустым")
     @Size(min = LOGIN_MIN_LENGTH, max = LOGIN_MAX_LENGTH, message = "Логина должен быть в диапазоне от 5 до 30 символом")
-    @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Логин может содержать только буквы, цифры и подчёркивание")
+    @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "Логин может содержать только буквы и цифры")
     private String username;
 
     @Schema(description = "Пароль пользователя", example = "securePassword123")
