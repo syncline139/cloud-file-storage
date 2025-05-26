@@ -1,6 +1,9 @@
 package com.example.project.controllers;
 
+import com.example.project.annotations.storage.DirectoryContentsDoc;
+import com.example.project.annotations.storage.RemoveResourceDoc;
 import com.example.project.annotations.storage.ResourceInfoDoc;
+import com.example.project.annotations.storage.UploadResourceDoc;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.services.StorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +36,7 @@ public class StorageController {
         return ResponseEntity.ok(response);
     }
 
+    @RemoveResourceDoc
     @DeleteMapping("/resource")
     public ResponseEntity<HttpStatus> removeResource(@RequestParam("path") String path) {
 
@@ -43,10 +47,10 @@ public class StorageController {
                 .body(null);
     }
 
-
+    @UploadResourceDoc
     @PostMapping("/resource")
     public ResponseEntity<?> uploadResource(@RequestParam("path") String path,
-                                            @RequestParam("object") MultipartFile[] objects) {
+                                            @RequestParam(value = "object", required = false) MultipartFile[] objects) {
 
         Set<ResourceInfoResponse> responses = storageService.uploadResource(path, objects);
 
@@ -89,6 +93,7 @@ public class StorageController {
                 .body(response);
     }
 
+    @DirectoryContentsDoc
     @GetMapping("/directory")
     public ResponseEntity<?> directoryContents(@RequestParam("path") String path) {
 
