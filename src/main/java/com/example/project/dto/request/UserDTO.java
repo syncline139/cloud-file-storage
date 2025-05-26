@@ -16,13 +16,13 @@ import lombok.Setter;
 public class UserDTO {
 
     private static final int LOGIN_MIN_LENGTH = 5;
-    private static final int LOGIN_MAX_LENGTH = 30;
+    private static final int LOGIN_MAX_LENGTH = 36;
     private static final int PASSWORD_MIN_LENGTH = 6;
     private static final int PASSWORD_MAX_LENGTH = 60;
 
-    @Schema(description = "Уникальный логин", example = "user_1")
+    @Schema(description = "Уникальный логин", example = "User1")
     @NotEmpty(message = "Логин не должен быть пустым")
-    @Size(min = LOGIN_MIN_LENGTH, max = LOGIN_MAX_LENGTH, message = "Логина должен быть в диапазоне от 5 до 30 символом")
+    @Size(min = LOGIN_MIN_LENGTH, max = LOGIN_MAX_LENGTH, message = "Логина должен быть в диапазоне от 5 до 36 символом")
     @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "Логин может содержать только буквы и цифры")
     private String username;
 

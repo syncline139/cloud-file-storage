@@ -1,5 +1,6 @@
 package com.example.project.controllers;
 
+import com.example.project.annotations.storage.ResourceInfoDoc;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.services.StorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ public class StorageController {
 
     private final StorageService storageService;
 
+    @ResourceInfoDoc
     @GetMapping("/resource")
     public ResponseEntity<?> resourceInfo(@RequestParam("path") String path) {
 
