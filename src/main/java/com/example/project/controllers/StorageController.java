@@ -40,10 +40,10 @@ public class StorageController {
                 .body(null);
     }
 
-
+    @UploadResourceDoc
     @PostMapping("/resource")
     public ResponseEntity<?> uploadResource(@RequestParam("path") String path,
-                                            @RequestParam(value = "object", required = false) MultipartFile[] objects) {
+                                            @RequestParam(value = "object") MultipartFile[] objects) {
 
         Set<ResourceInfoResponse> responses = storageService.uploadResource(path, objects);
 
