@@ -1,10 +1,10 @@
-package com.example.project.services.impl;
+package com.example.project.utils;
 
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.auth.AuthenticationCredentialsNotFoundException;
 import com.example.project.exceptions.storage.*;
 import com.example.project.repositories.UserRepository;
-import com.example.project.utils.Resource;
+import com.example.project.services.impl.AuthServiceImpl;
 import io.minio.*;
 import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
@@ -80,7 +80,7 @@ public class MinioHelperService {
     public String getActiveUserBucketName() {
         String username = activeUserName();
         int userId = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"))
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"))
                 .getId();
         return AuthServiceImpl.toValidBucketName(username, userId);
     }

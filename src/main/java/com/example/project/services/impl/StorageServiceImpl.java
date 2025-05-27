@@ -3,6 +3,7 @@ package com.example.project.services.impl;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.exceptions.storage.*;
 import com.example.project.services.StorageService;
+import com.example.project.utils.MinioHelperService;
 import com.example.project.utils.Resource;
 import io.minio.*;
 import io.minio.messages.Item;
