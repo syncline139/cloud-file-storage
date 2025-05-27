@@ -1,23 +1,16 @@
 package com.example.project.controllers;
 
-import com.example.project.annotations.storage.DirectoryContentsDoc;
-import com.example.project.annotations.storage.RemoveResourceDoc;
-import com.example.project.annotations.storage.ResourceInfoDoc;
-import com.example.project.annotations.storage.UploadResourceDoc;
+import com.example.project.annotations.storage.*;
 import com.example.project.dto.response.ResourceInfoResponse;
 import com.example.project.services.StorageService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -47,7 +40,7 @@ public class StorageController {
                 .body(null);
     }
 
-    @UploadResourceDoc
+
     @PostMapping("/resource")
     public ResponseEntity<?> uploadResource(@RequestParam("path") String path,
                                             @RequestParam(value = "object", required = false) MultipartFile[] objects) {
@@ -83,6 +76,7 @@ public class StorageController {
                 .body(response);
     }
 
+
     @GetMapping("/resource/search")
     public ResponseEntity<?> searchResource(@RequestParam("query") String query) {
 
@@ -104,6 +98,7 @@ public class StorageController {
                 .body(response);
     }
 
+    @CreateEmptyFolderDoc
     @PostMapping("/directory")
     public ResponseEntity<?> createEmptyFolder(@RequestParam("path") String path) {
 
