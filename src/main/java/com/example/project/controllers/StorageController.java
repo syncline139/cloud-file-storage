@@ -66,6 +66,7 @@ public class StorageController {
      * @param from старый путь
      * @param to   новый путь
      */
+    @MoverRenamerResourceDoc
     @GetMapping("/resource/move")
     public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from, @RequestParam("to") String to) {
 
