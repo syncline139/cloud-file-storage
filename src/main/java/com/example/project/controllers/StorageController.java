@@ -76,7 +76,7 @@ public class StorageController {
                 .body(response);
     }
 
-
+    @SearchResourceDoc
     @GetMapping("/resource/search")
     public ResponseEntity<?> searchResource(@RequestParam("query") String query) {
 
