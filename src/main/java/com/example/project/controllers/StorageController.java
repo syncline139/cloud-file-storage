@@ -52,6 +52,7 @@ public class StorageController {
                 .body(responses);
     }
 
+    @DownloadResourceDoc
     @GetMapping("/resource/download")
     public ResponseEntity<HttpStatus> downloadResource(@RequestParam("path") String path, HttpServletResponse response) {
 
