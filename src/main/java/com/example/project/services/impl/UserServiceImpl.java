@@ -21,17 +21,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDetails getAuthenticatedUserDetails() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
         log.info("Попытка получить информацию о текущем пользователе");
 
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             log.warn("Пользователь не авторизован");
             throw new AuthenticationCredentialsNotFoundException();
         }
-
         UserDetails userDetails = (UserDetails) auth.getPrincipal();
         log.info("Пользователь с логином '{}' авторизован", userDetails.getUsername());
-
         log.info("Пользотваль получил запрашиваемые данные");
         return userDetails;
     }

@@ -12,14 +12,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/**
- * Класс отвечает за поимку всех исключений помеченными @RestController
- * он их обрабатывает и отпрвляет пользотвалю JSON c ошибкой
- */
 @RestControllerAdvice(annotations = RestController.class)
 public class GlobalExceptionHandler {
 
-    // ошибки валидации (пример - слишком короткий login)
     @ExceptionHandler(UserNotValidationException.class)
     public ResponseEntity<ErrorResponse> handleException(UserNotValidationException e) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
@@ -29,11 +24,9 @@ public class GlobalExceptionHandler {
                 status.value(),
                 System.currentTimeMillis()
         );
-
         return new ResponseEntity<>(response, status); // 400
     }
 
-    // login занят
     @ExceptionHandler(UniqueUsernameException.class)
     public ResponseEntity<ErrorResponse> handleException(UniqueUsernameException e) {
         HttpStatus status = HttpStatus.CONFLICT;
@@ -43,11 +36,9 @@ public class GlobalExceptionHandler {
                 status.value(),
                 System.currentTimeMillis()
         );
-
         return new ResponseEntity<>(response, status); // 409
     }
 
-    // неизвестная ошибка
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -57,11 +48,9 @@ public class GlobalExceptionHandler {
                 status.value(),
                 System.currentTimeMillis()
         );
-
         return new ResponseEntity<>(response, status); // 500
     }
 
-    // пользователь не авторизован
     @ExceptionHandler(UsernameExistenceException.class)
     public ResponseEntity<ErrorResponse> handleException(UsernameExistenceException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
@@ -74,7 +63,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, status); //401
     }
 
-    // Неверные данные при аутентификации
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleException(BadCredentialsException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
@@ -87,7 +75,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, status); //401
     }
 
-    //Пользователь не авторизирован
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleException(AuthenticationCredentialsNotFoundException e) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
@@ -144,8 +131,6 @@ public class GlobalExceptionHandler {
                 status.value(),
                 System.currentTimeMillis()
         );
-
         return new ResponseEntity<>(response, status);
     }
-
 }

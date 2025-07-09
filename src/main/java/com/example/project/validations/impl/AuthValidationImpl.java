@@ -27,7 +27,6 @@ public class AuthValidationImpl implements AuthValidation {
 
     @Override
     public void bindingResultErrors(BindingResult bindingResult) {
-
         if (bindingResult.hasErrors()) {
             StringBuilder errorMsg = new StringBuilder();
             List<FieldError> errors = bindingResult.getFieldErrors();
@@ -52,17 +51,14 @@ public class AuthValidationImpl implements AuthValidation {
 
     @Override
     public void uniqueLoginErrors(UserDTO userDTO) {
-
         if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
             log.warn("Логин '{}' уже занят", userDTO.getUsername());
             throw new UniqueUsernameException(String.format("Пользователь с логином '%s' уже зарегистрирован",userDTO.getUsername()));
         }
-
         if (userDTO.getUsername().equals("anonymousUser")) {
             log.warn("Мимо челик");
         } else {
             log.info("Логин доступен для регистрации");
         }
-
     }
 }

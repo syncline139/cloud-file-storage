@@ -22,9 +22,7 @@ public class UserController {
     @UserInfoDoc
     @GetMapping("/me")
     public ResponseEntity<?> userLoginInfo() {
-
         UserDetails user = userService.getAuthenticatedUserDetails();
-
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(Map.of("username",user.getUsername()));

@@ -30,7 +30,6 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = minioHelperService.bucketExists();
         String normalizedPath = minioHelperService.normalizedPath(path);
         minioHelperService.validatePath(path, bucketName);
-
         return minioHelperService.getResourceMetadata(normalizedPath, bucketName);
     }
 
@@ -41,27 +40,22 @@ public class StorageServiceImpl implements StorageService {
         minioHelperService.validatePath(path, bucketName);
         String normalizedPath = minioHelperService.normalizedPath(path);
         ResourceInfoResponse resourceInfo = minioHelperService.getResourceMetadata(normalizedPath, bucketName);
-
         if (!resourceInfo.name().endsWith("/")) {
             minioHelperService.deleteFile(normalizedPath, bucketName);
         } else {
             minioHelperService.deleteDirectory(normalizedPath, bucketName);
         }
-
     }
 
     @Override
     public void downloadResource(String path, HttpServletResponse response) {
         log.info("Вход в метод 'downloadResource', путь: {}", path);
         String bucketName = minioHelperService.bucketExists();
-
         if (path == null || path.trim().isEmpty()) {
             throw new PathNotFoundException("Невозможно скачать бакет");
         }
-
         String normalizedPath = minioHelperService.normalizedPath(path);
         ResourceInfoResponse resourceInfo = minioHelperService.getResourceMetadata(normalizedPath, bucketName);
-
         if (resourceInfo.name().endsWith("/")) {
             minioHelperService.downloadDirectory(normalizedPath,bucketName, response);
         } else {
@@ -84,7 +78,6 @@ public class StorageServiceImpl implements StorageService {
         }
 
         ResourceInfoResponse directoryOrFile = minioHelperService.getResourceMetadata(normalizedOldPath, bucketName);
-
         if (!directoryOrFile.name().endsWith("/")) {
             minioHelperService.renameOrMoveFile(normalizedNewPath, normalizedOldPath, bucketName);
             String nameFile = normalizedNewPath.substring(normalizedNewPath.lastIndexOf('/') + 1);
@@ -94,12 +87,10 @@ public class StorageServiceImpl implements StorageService {
             Long size = directoryOrFile.size();
             return ResourceInfoResponse.forFile(pathToFile,nameFile,size);
         }
-
         if (directoryOrFile.name().endsWith("/")) {
             minioHelperService.renameOrMoveDirectory(normalizedNewPath, normalizedOldPath, bucketName);
             String path;
             String name;
-
             String cleanPath = normalizedNewPath.endsWith("/")
                     ? normalizedNewPath.substring(0, normalizedNewPath.length() - 1)
                     : normalizedNewPath;
@@ -112,10 +103,8 @@ public class StorageServiceImpl implements StorageService {
                 path = cleanPath.substring(0, lastSlashIndex) + '/';
                 name = cleanPath.substring(lastSlashIndex + 1);
             }
-
             return ResourceInfoResponse.forDirectory(path, name);
         }
-
         log.warn("Невалидный или отсутствующий путь {}, {}", oldPath, newPath);
         throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь");
     }
@@ -126,7 +115,6 @@ public class StorageServiceImpl implements StorageService {
         String bucketName = minioHelperService.bucketExists();
         String normalizedQuery = minioHelperService.normalizedPath(query);
         Iterable<Result<Item>> results = minioHelperService.listAllObjects(bucketName);
-
         return minioHelperService.resultSearch(results, normalizedQuery);
     }
 
@@ -139,7 +127,6 @@ public class StorageServiceImpl implements StorageService {
         if (!normalizedPath.isEmpty() && !normalizedPath.endsWith("/")) {
             normalizedPath += "/";
         }
-
         return minioHelperService.uploadResourceToBucket(bucketName,normalizedPath,objects);
     }
 
@@ -150,7 +137,6 @@ public class StorageServiceImpl implements StorageService {
         String normalizedPath = minioHelperService.normalizedPath(path);
         Resource directoryOrFile = minioHelperService.identifyResourceType(normalizedPath, bucketName);
         Iterable<Result<Item>> results = minioHelperService.listTopLevelOrDirectory(bucketName, normalizedPath);
-
         return minioHelperService.getFolderContent(normalizedPath, results, directoryOrFile);
     }
 
@@ -166,11 +152,9 @@ public class StorageServiceImpl implements StorageService {
         if (!parentFolder.isEmpty()) {
             minioHelperService.parentDirectoryExists(parentFolder, bucketName);
         }
-
         if (minioHelperService.directoryExists(bucketName,normalizedPath)) {
             throw new ResourceAlreadyExistsException(normalizedPath);
         }
-
         if (path.isEmpty()) {
             throw new MissingOrInvalidPathException("Невалидный или отсутсвующий путь");
         }

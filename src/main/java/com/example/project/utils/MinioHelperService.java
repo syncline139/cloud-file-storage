@@ -38,7 +38,6 @@ public class MinioHelperService {
         try {
             ZipEntry zipEntry = new ZipEntry(relativePath);
             zipOut.putNextEntry(zipEntry);
-
             byte[] bytes = new byte[1024];
             int length;
             while ((length = fileToZip.read(bytes)) >= 0) {
@@ -64,7 +63,6 @@ public class MinioHelperService {
             log.error("Бакета с именем {} не существует!", bucketName);
             throw new BucketNotFoundException(String.format("Бакета '%s' не существует", bucketName));
         }
-
         return bucketName;
     }
 
@@ -73,7 +71,6 @@ public class MinioHelperService {
         if (authentication == null || authentication.getName().equals("anonymousUser")) {
             throw new AuthenticationCredentialsNotFoundException();
         }
-
         return authentication.getName();
     }
 
@@ -89,7 +86,6 @@ public class MinioHelperService {
     public String normalizedPath(String path) {
         String normalizedPath = path.replaceAll("^/+|/+$", "").trim();
         log.info("Путь прошел нормализацию: {}  -->  {}",path,normalizedPath);
-
         return !normalizedPath.isEmpty() ? normalizedPath : "";
     }
 
@@ -115,7 +111,6 @@ public class MinioHelperService {
                     .recursive(false)
                     .build());
         }
-
         return results;
     }
 
@@ -145,7 +140,6 @@ public class MinioHelperService {
             log.info("Путь {} был определён как папка", normalizedPath);
             return ResourceInfoResponse.forDirectory(parentPath, name);
         }
-
         log.error("По пути {} ничего не было найдено", normalizedPath);
         throw new PathNotFoundException("Ресурс не найден");
     }
@@ -168,7 +162,6 @@ public class MinioHelperService {
         if (directoryExists(bucketName, normalizedPath)) {
             return Resource.DIRECTORY;
         }
-
         throw new PathNotFoundException("Папка не существует");
     }
     public String parentPathByFullPath(String normalizedPath) {
@@ -428,7 +421,6 @@ public class MinioHelperService {
             try {
                 Item item = result.get();
                 String objectName = item.objectName();
-
                 if (!found && !normalizedPath.isEmpty()) {
                     found = objectName.startsWith(normalizedPath + "/");
                 }
@@ -444,7 +436,6 @@ public class MinioHelperService {
                     String name = objectName.substring(parentPath.length());
                     infoResponseList.add(ResourceInfoResponse.forFile(parentPath, name, item.size()));
                 }
-
             } catch (Exception e) {
                 log.error("Ошибка при обработке объекта: {}", e.getMessage());
             }
@@ -473,13 +464,11 @@ public class MinioHelperService {
                 } catch (Exception e) {
                     continue;
                 }
-
                 if (item.objectName().equals(parentFolder)) {
                     parentExists = true;
                     break;
                 }
             }
-
             if (!parentExists) {
                 throw new PathNotFoundException("Родительская папка не существует");
             }
@@ -546,7 +535,6 @@ public class MinioHelperService {
         }
 
         List<ResourceInfoResponse> responseList = new ArrayList<>();
-
         for (Map.Entry<String, Item> entry : dirs.entrySet()) {
             responseList.add(buildDirectoryResponse(entry.getKey()));
         }

@@ -40,7 +40,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public void registerAndAuthenticateUser(UserDTO userDTO, HttpServletRequest request) {
-        log.info("Вошли в метод 'registerAndAuthenticateUser'");
+        log.info("Регистрация и аутентификация пользователя: {}", userDTO.getUsername());
 
         if (userDTO.getUsername().equals("anonymousUser")) {
             throw new SpongeBobSquarePants("Мимо челик");
@@ -50,8 +50,7 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
             log.info("Пользователь '{}' сохранён в базу данных", user.getUsername());
             createBucketByUsername(user);
-
-        setupAuthenticationAndSession(userDTO,request);
+            setupAuthenticationAndSession(userDTO,request);
     }
 
     @Override
@@ -82,12 +81,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void setupAuthenticationAndSession(UserDTO userDTO, HttpServletRequest request) {
-
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDTO.getUsername(), userDTO.getPassword());
 
         Authentication authenticationUser = authenticationManager.authenticate(authentication);
-
         log.debug("Аутентификация пользователя '{}' прошла успешно", userDTO.getUsername());
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
@@ -106,7 +103,6 @@ public class AuthServiceImpl implements AuthService {
             boolean exists = minioClient.bucketExists(
                     BucketExistsArgs.builder().bucket(bucketName).build()
             );
-
             if (!exists) {
                 minioClient.makeBucket(
                         MakeBucketArgs.builder().bucket(bucketName).build()

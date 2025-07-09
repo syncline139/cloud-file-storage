@@ -28,35 +28,23 @@ public class AuthController {
     private final AuthService authService;
     private final AuthValidation authValidation;
 
-
     @UserSignUpDoc
     @PostMapping("/sign-up")
     public ResponseEntity<?> signUp(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
-
         authValidation.bindingResultErrors(bindingResult);
-
         authValidation.uniqueLoginErrors(userDTO);
-
-
         authService.registerAndAuthenticateUser(userDTO, request);
-
             return ResponseEntity
                 .status(HttpStatus.CREATED) // 201
                 .body(Map.of("username", userDTO.getUsername()));
     }
 
-
     @UserSignInDoc
     @PostMapping("/sign-in")
     public ResponseEntity<?> signIn(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
-
         authValidation.bindingResultErrors(bindingResult);
-
         authValidation.usernameExistenceErrors(userDTO);
-
-
         authService.authenticate(userDTO,request);
-
         return ResponseEntity
                 .status(HttpStatus.OK)  // 200
                 .body(Map.of("username", userDTO.getUsername()));
@@ -65,9 +53,7 @@ public class AuthController {
     @UserSignOutDoc
     @PostMapping("/sign-out")
     public ResponseEntity<HttpStatus> logout(HttpServletRequest request) {
-
         authService.logout(request);
-
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
     }
 

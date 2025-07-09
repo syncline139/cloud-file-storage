@@ -25,11 +25,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Transactional
     @Override
     public UserDetailsImpl loadUserByUsername(String login) throws UsernameNotFoundException {
-
       final  Optional<User> maybeUser = userRepository.findByUsername(login);
-
        log.info("Попытка найти пользователя с логином '{}'",login);
-
         if (maybeUser.isEmpty()) {
             log.warn("Не удалось найти пользователя с логином '{}' ", login);
             throw new UniqueUsernameException(String.format("Пользотваль с логином: '%s' не найден", login));

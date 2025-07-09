@@ -9,17 +9,6 @@ import java.util.Set;
 
 public interface StorageService {
 
-    /**
-     * Получение информации о ресурсе
-     *<p>
-     *     Если путь, указанный пользователем normalizedPath, полностью совпадает с
-     *     <br/>
-     *     item.objectName() — это файл.
-     *     Если среди объектов есть такие, у которых objectName() начинается с normalizedPath + "/" — это папка.
-     *</p>
-     *
-     * @param path путь пришедший от пользотваля
-     */
     ResourceInfoResponse resourceInfo(String path);
 
     void removeResource(String path);
