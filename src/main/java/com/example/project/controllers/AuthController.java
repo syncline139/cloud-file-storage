@@ -30,7 +30,9 @@ public class AuthController {
 
     @UserSignUpDoc
     @PostMapping("/sign-up")
-    public ResponseEntity<?> signUp(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
+    public ResponseEntity<?> signUp(@RequestBody @Valid UserDTO userDTO,
+                                    BindingResult bindingResult,
+                                    HttpServletRequest request) {
         authValidation.bindingResultErrors(bindingResult);
         authValidation.uniqueLoginErrors(userDTO);
         authService.registerAndAuthenticateUser(userDTO, request);
@@ -41,7 +43,9 @@ public class AuthController {
 
     @UserSignInDoc
     @PostMapping("/sign-in")
-    public ResponseEntity<?> signIn(@RequestBody @Valid UserDTO userDTO, BindingResult bindingResult, HttpServletRequest request) {
+    public ResponseEntity<?> signIn(@RequestBody @Valid UserDTO userDTO,
+                                    BindingResult bindingResult,
+                                    HttpServletRequest request) {
         authValidation.bindingResultErrors(bindingResult);
         authValidation.usernameExistenceErrors(userDTO);
         authService.authenticate(userDTO,request);

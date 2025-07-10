@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.checkerframework.checker.regex.qual.PartialRegex;
 import org.modelmapper.internal.bytebuddy.implementation.bind.annotation.Empty;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,18 +53,20 @@ public class User implements Serializable {
     @Column(name = "role")
     private Role role;
 
-    public User(String username, String password, Role role) {
+    public User(String username,
+                String password,
+                Role role) {
         this.username = username;
         this.password = password;
         this.role = role;
     }
 
-    public static User createUserFromDTO(UserDTO dto, PasswordEncoder encoder) {
+    public static User createUserFromDTO(UserDTO dto,
+                                         PasswordEncoder encoder) {
         return new User(
                 dto.getUsername(),
                 encoder.encode(dto.getPassword()),
                 Role.USER
         );
     }
-
 }

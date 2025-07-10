@@ -34,7 +34,9 @@ public class MinioHelperService {
     private final MinioClient minioClient;
     private final UserRepository userRepository;
 
-    public void buildZip(ZipOutputStream zipOut, InputStream fileToZip, String relativePath) {
+    public void buildZip(ZipOutputStream zipOut,
+                         InputStream fileToZip,
+                         String relativePath) {
         try {
             ZipEntry zipEntry = new ZipEntry(relativePath);
             zipOut.putNextEntry(zipEntry);
@@ -89,7 +91,8 @@ public class MinioHelperService {
         return !normalizedPath.isEmpty() ? normalizedPath : "";
     }
 
-    public Iterable<Result<Item>> listDirectoryContents(String bucketName, String path) {
+    public Iterable<Result<Item>> listDirectoryContents(String bucketName,
+                                                        String path) {
         return minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(bucketName)
                 .prefix(path)
@@ -97,7 +100,8 @@ public class MinioHelperService {
                 .build());
     }
 
-    public Iterable<Result<Item>> listTopLevelOrDirectory(String bucketName, String normalizedPath) {
+    public Iterable<Result<Item>> listTopLevelOrDirectory(String bucketName,
+                                                          String normalizedPath) {
         Iterable<Result<Item>> results;
         if (normalizedPath.isEmpty()) {
             results = minioClient.listObjects(ListObjectsArgs.builder()
@@ -121,7 +125,8 @@ public class MinioHelperService {
                 .build());
     }
 
-    public ResourceInfoResponse getResourceMetadata(String normalizedPath, String bucketName) {
+    public ResourceInfoResponse getResourceMetadata(String normalizedPath,
+                                                    String bucketName) {
         try {
             StatObjectResponse object = minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
@@ -144,7 +149,8 @@ public class MinioHelperService {
         throw new PathNotFoundException("Ресурс не найден");
     }
 
-    public Resource identifyResourceType(String normalizedPath, String bucketName) {
+    public Resource identifyResourceType(String normalizedPath,
+                                         String bucketName) {
         if (normalizedPath.isEmpty()) {
             return Resource.DIRECTORY;
         }
@@ -170,7 +176,8 @@ public class MinioHelperService {
                 : "";
     }
 
-    public boolean directoryExists(String bucketName, String path) {
+    public boolean directoryExists(String bucketName,
+                                   String path) {
         Iterable<Result<Item>> results = listDirectoryContents(bucketName, path);
         for (Result<Item> r : results) {
             Item item;
@@ -186,14 +193,16 @@ public class MinioHelperService {
         return false;
     }
 
-    public void validatePath(String path, String bucketName) {
+    public void validatePath(String path,
+                             String bucketName) {
         if (path == null || path.trim().isEmpty()) {
             log.warn("Путь: {} это бакет",bucketName);
             throw new MissingOrInvalidPathException("Невалидный или отсутствующий путь"); // 400
         }
     }
 
-    public void deleteFile(String path, String bucketName) {
+    public void deleteFile(String path,
+                           String bucketName) {
         try {
             minioClient.removeObject(RemoveObjectArgs.builder()
                     .bucket(bucketName)
@@ -205,7 +214,8 @@ public class MinioHelperService {
         }
     }
 
-    public void deleteDirectory(String normalizedPath, String bucketName) {
+    public void deleteDirectory(String normalizedPath,
+                                String bucketName) {
         Iterable<Result<Item>> listObjects =  minioClient.listObjects(ListObjectsArgs.builder()
                 .prefix(normalizedPath + "/")
                 .bucket(bucketName)
@@ -235,7 +245,9 @@ public class MinioHelperService {
         }
     }
 
-    public void downloadFile(String normalizedPath, String bucketName, HttpServletResponse response ) {
+    public void downloadFile(String normalizedPath,
+                             String bucketName,
+                             HttpServletResponse response ) {
         try {
             String fileName = normalizedPath.substring(normalizedPath.lastIndexOf("/") + 1);
 
@@ -256,7 +268,9 @@ public class MinioHelperService {
         }
     }
 
-    public void downloadDirectory(String normalizedPath, String bucketName,HttpServletResponse response) {
+    public void downloadDirectory(String normalizedPath,
+                                  String bucketName,
+                                  HttpServletResponse response) {
         try {
             response.setContentType("application/zip");
             response.setHeader("Content-Disposition", "attachment; filename=\"archive.zip\"");
@@ -292,7 +306,9 @@ public class MinioHelperService {
         }
     }
 
-    public void renameOrMoveFile(String normalizedNewPath, String normalizedOldPath, String bucketName) {
+    public void renameOrMoveFile(String normalizedNewPath,
+                                 String normalizedOldPath,
+                                 String bucketName) {
         try {
             minioClient.copyObject(CopyObjectArgs.builder()
                     .bucket(bucketName)
@@ -316,7 +332,9 @@ public class MinioHelperService {
         }
     }
 
-    public void renameOrMoveDirectory(String normalizedNewPath, String normalizedOldPath, String bucketName) {
+    public void renameOrMoveDirectory(String normalizedNewPath,
+                                      String normalizedOldPath,
+                                      String bucketName) {
         Iterable<Result<Item>> listObjects = minioClient.listObjects(ListObjectsArgs.builder()
                 .bucket(bucketName)
                 .prefix(normalizedOldPath + '/')
@@ -355,7 +373,8 @@ public class MinioHelperService {
         }
     }
 
-    public boolean doesResourceExist(String normalizedNewPath, String bucketName) {
+    public boolean doesResourceExist(String normalizedNewPath,
+                                     String bucketName) {
         try {
             minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
@@ -379,7 +398,9 @@ public class MinioHelperService {
         return false;
     }
 
-    public Set<ResourceInfoResponse> uploadResourceToBucket(String bucketName, String normalizedPath, MultipartFile[] objects) {
+    public Set<ResourceInfoResponse> uploadResourceToBucket(String bucketName,
+                                                            String normalizedPath,
+                                                            MultipartFile[] objects) {
 
         Set<ResourceInfoResponse> responses = new HashSet<>();
 
@@ -412,7 +433,9 @@ public class MinioHelperService {
         return  responses;
     }
 
-    public List<ResourceInfoResponse> getFolderContent(String normalizedPath, Iterable<Result<Item>> results, Resource directoryOrFile) {
+    public List<ResourceInfoResponse> getFolderContent(String normalizedPath,
+                                                       Iterable<Result<Item>> results,
+                                                       Resource directoryOrFile) {
         List<ResourceInfoResponse> infoResponseList = new ArrayList<>();
 
         boolean found = normalizedPath.isEmpty();
@@ -448,7 +471,8 @@ public class MinioHelperService {
         return infoResponseList;
     }
 
-    public void parentDirectoryExists(String parentFolder, String bucketName) {
+    public void parentDirectoryExists(String parentFolder,
+                                      String bucketName) {
         if (!parentFolder.isEmpty()) {
             Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
                     .bucket(bucketName)
@@ -475,7 +499,8 @@ public class MinioHelperService {
         }
     }
 
-    public void createDirectory(String normalizedPath, String bucketName) {
+    public void createDirectory(String normalizedPath,
+                                String bucketName) {
         try {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(bucketName)
@@ -488,7 +513,8 @@ public class MinioHelperService {
         }
     }
 
-    public List<ResourceInfoResponse> resultSearch(Iterable<Result<Item>> results, String normalizedQuery) {
+    public List<ResourceInfoResponse> resultSearch(Iterable<Result<Item>> results,
+                                                   String normalizedQuery) {
         if (normalizedQuery == null || normalizedQuery.trim().isEmpty() ||
                 !normalizedQuery.matches(".*[a-zA-Z0-9-_].*") && normalizedQuery.matches("^[./,\\\\:*?\"<>|]+$")) {
             log.warn("Невалидный или отсутствующий поисковый запрос");

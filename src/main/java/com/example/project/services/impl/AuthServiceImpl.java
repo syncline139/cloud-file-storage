@@ -39,7 +39,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
-    public void registerAndAuthenticateUser(UserDTO userDTO, HttpServletRequest request) {
+    public void registerAndAuthenticateUser(UserDTO userDTO,
+                                            HttpServletRequest request) {
         log.info("Регистрация и аутентификация пользователя: {}", userDTO.getUsername());
 
         if (userDTO.getUsername().equals("anonymousUser")) {
@@ -54,7 +55,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void authenticate(UserDTO userDTO, HttpServletRequest request) {
+    public void authenticate(UserDTO userDTO,
+                             HttpServletRequest request) {
         setupAuthenticationAndSession(userDTO,request);
     }
 
@@ -80,7 +82,8 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private void setupAuthenticationAndSession(UserDTO userDTO, HttpServletRequest request) {
+    private void setupAuthenticationAndSession(UserDTO userDTO,
+                                               HttpServletRequest request) {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDTO.getUsername(), userDTO.getPassword());
 
@@ -117,7 +120,8 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    public static String toValidBucketName(String username, int userId) {
+    public static String toValidBucketName(String username,
+                                           int userId) {
         return username
                 .toLowerCase()
                 .replaceAll("[^a-z0-9-]", "-")

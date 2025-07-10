@@ -48,7 +48,8 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public void downloadResource(String path, HttpServletResponse response) {
+    public void downloadResource(String path,
+                                 HttpServletResponse response) {
         log.info("Вход в метод 'downloadResource', путь: {}", path);
         String bucketName = minioHelperService.bucketExists();
         if (path == null || path.trim().isEmpty()) {
@@ -64,7 +65,8 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public ResourceInfoResponse moverOrRename(String oldPath, String newPath) {
+    public ResourceInfoResponse moverOrRename(String oldPath,
+                                              String newPath) {
         log.info("Вошел в метод 'moverOrRename', старый путь: '{}', новый путь: '{}'", oldPath, newPath);
         String bucketName = minioHelperService.bucketExists();
         String normalizedOldPath = minioHelperService.normalizedPath(oldPath);
@@ -119,7 +121,8 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public Set<ResourceInfoResponse> uploadResource(String path, MultipartFile[] objects){
+    public Set<ResourceInfoResponse> uploadResource(String path,
+                                                    MultipartFile[] objects){
         log.info("Вошли в метод 'uploadResource'");
         String bucketName = minioHelperService.bucketExists();
         String normalizedPath = minioHelperService.normalizedPath(path);
