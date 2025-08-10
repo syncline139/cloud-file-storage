@@ -1,6 +1,7 @@
 spring:
   application:
     name: cloud-file-storage
+
   datasource:
     url: jdbc:postgresql://db:5432/${DB_NAME}
     username: ${DB_USER}
@@ -25,6 +26,8 @@ minio:
   url: ${MINIO_URL}
   access-key: ${MINIO_USER}
   secret-key: ${MINIO_PASSWORD}
+
+
 
 server:
   error:

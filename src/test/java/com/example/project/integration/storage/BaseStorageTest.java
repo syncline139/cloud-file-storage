@@ -1,7 +1,6 @@
 package com.example.project.integration.storage;
 
 import com.example.project.dto.request.UserDTO;
-import com.example.project.exceptions.storage.ResourceAlreadyExistsException;
 import com.example.project.repositories.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
@@ -13,11 +12,9 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.shaded.com.trilead.ssh2.Session;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.ByteArrayInputStream;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,8 +22,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
+@Testcontainers
 public abstract class BaseStorageTest {
+
 
     public static final String USERNAME = "luntik";
     public static final String PASSWORD = "qwerty";
@@ -42,6 +40,7 @@ public abstract class BaseStorageTest {
 
     @Autowired
     protected ObjectMapper objectMapper;
+
     /**
      * При регистрации пользователю выдается кука с активной сессией и создается бакет с названием его юзернейма
      */
