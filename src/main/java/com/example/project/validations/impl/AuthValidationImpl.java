@@ -26,22 +26,6 @@ public class AuthValidationImpl implements AuthValidation {
     private final UserRepository userRepository;
 
     @Override
-    public void bindingResultErrors(BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            StringBuilder errorMsg = new StringBuilder();
-            List<FieldError> errors = bindingResult.getFieldErrors();
-            for (FieldError error : errors) {
-                errorMsg
-                        .append(error.getDefaultMessage())
-                        .append(";");
-            }
-            log.warn("Запрос от пользователя не прошел валидацию: {}", errorMsg);
-            throw new UserNotValidationException(errorMsg.toString());
-        }
-        log.info("Запрос от пользователя прошел валидацию");
-    }
-
-    @Override
     public void usernameExistenceErrors(UserDTO userDTO) {
         final Optional<User> user = userRepository.findByUsername(userDTO.getUsername());
         if (user.isEmpty()) {
