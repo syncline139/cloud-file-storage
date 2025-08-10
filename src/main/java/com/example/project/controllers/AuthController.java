@@ -4,6 +4,7 @@ import com.example.project.annotations.auth.UserSignInDoc;
 import com.example.project.annotations.auth.UserSignOutDoc;
 import com.example.project.annotations.auth.UserSignUpDoc;
 import com.example.project.dto.request.UserDTO;
+import com.example.project.dto.response.UsernameResponse;
 import com.example.project.services.AuthService;
 import com.example.project.validations.AuthValidation;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,24 +31,26 @@ public class AuthController {
 
     @UserSignUpDoc
     @PostMapping("/sign-up")
-    public ResponseEntity<Map<String,String>> signUp(@RequestBody @Valid UserDTO userDTO,
+    public ResponseEntity<UsernameResponse> signUp(@RequestBody @Valid UserDTO userDTO,
                                     HttpServletRequest request) {
         authValidation.uniqueLoginErrors(userDTO);
         authService.registerAndAuthenticateUser(userDTO, request);
-            return ResponseEntity
+        UsernameResponse usernameResponse = new UsernameResponse(userDTO.getUsername());
+        return ResponseEntity
                 .status(HttpStatus.CREATED) // 201
-                .body(Map.of("username", userDTO.getUsername()));
+                .body(usernameResponse);
     }
 
     @UserSignInDoc
     @PostMapping("/sign-in")
-    public ResponseEntity<Map<String,String>> signIn(@RequestBody @Valid UserDTO userDTO,
+    public ResponseEntity<UsernameResponse> signIn(@RequestBody @Valid UserDTO userDTO,
                                     HttpServletRequest request) {
         authValidation.usernameExistenceErrors(userDTO);
         authService.authenticate(userDTO,request);
+        UsernameResponse usernameResponse = new UsernameResponse(userDTO.getUsername());
         return ResponseEntity
                 .status(HttpStatus.OK)  // 200
-                .body(Map.of("username", userDTO.getUsername()));
+                .body(usernameResponse);
     }
 
     @UserSignOutDoc
