@@ -22,23 +22,23 @@ public class StorageController {
 
     @ResourceInfoDoc
     @GetMapping("/resource")
-    public ResponseEntity<?> resourceInfo(@RequestParam("path") String path) {
+    public ResponseEntity<ResourceInfoResponse> resourceInfo(@RequestParam("path") String path) {
         ResourceInfoResponse response = storageService.resourceInfo(path);
         return ResponseEntity.ok(response);
     }
 
     @RemoveResourceDoc
     @DeleteMapping("/resource")
-    public ResponseEntity<HttpStatus> removeResource(@RequestParam("path") String path) {
+    public ResponseEntity<Void> removeResource(@RequestParam("path") String path) {
         storageService.removeResource(path);
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
-                .body(null);
+                .build();
     }
 
     @UploadResourceDoc
     @PostMapping("/resource")
-    public ResponseEntity<?> uploadResource(@RequestParam("path") String path,
+    public ResponseEntity<Set<ResourceInfoResponse>> uploadResource(@RequestParam("path") String path,
                                             @RequestParam(value = "object") MultipartFile[] objects) {
         Set<ResourceInfoResponse> responses = storageService.uploadResource(path, objects);
         return ResponseEntity
@@ -48,18 +48,18 @@ public class StorageController {
 
     @DownloadResourceDoc
     @GetMapping("/resource/download")
-    public ResponseEntity<HttpStatus> downloadResource(@RequestParam("path") String path,
+    public ResponseEntity<Void> downloadResource(@RequestParam("path") String path,
                                                        HttpServletResponse response) {
         storageService.downloadResource(path, response);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(null);
+                .build();
     }
 
     // from - старый путь, to - новый путь
     @MoverRenamerResourceDoc
     @GetMapping("/resource/move")
-    public ResponseEntity<?> moverRenamerResource(@RequestParam("from") String from,
+    public ResponseEntity<ResourceInfoResponse> moverRenamerResource(@RequestParam("from") String from,
                                                   @RequestParam("to") String to) {
         ResourceInfoResponse response = storageService.moverOrRename(from, to);
         return ResponseEntity
@@ -69,7 +69,7 @@ public class StorageController {
 
     @SearchResourceDoc
     @GetMapping("/resource/search")
-    public ResponseEntity<?> searchResource(@RequestParam("query") String query) {
+    public ResponseEntity<List<ResourceInfoResponse>> searchResource(@RequestParam("query") String query) {
         List<ResourceInfoResponse> response = storageService.searchResource(query);
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -78,7 +78,7 @@ public class StorageController {
 
     @DirectoryContentsDoc
     @GetMapping("/directory")
-    public ResponseEntity<?> directoryContents(@RequestParam("path") String path) {
+    public ResponseEntity<List<ResourceInfoResponse>> directoryContents(@RequestParam("path") String path) {
         List<ResourceInfoResponse> response = storageService.directoryContents(path);
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -86,7 +86,7 @@ public class StorageController {
     }
     @CreateEmptyFolderDoc
     @PostMapping("/directory")
-    public ResponseEntity<?> createEmptyFolder(@RequestParam("path") String path) {
+    public ResponseEntity<ResourceInfoResponse> createEmptyFolder(@RequestParam("path") String path) {
         ResourceInfoResponse response = storageService.createEmptyFolder(path);
         return ResponseEntity
                 .status(HttpStatus.CREATED)

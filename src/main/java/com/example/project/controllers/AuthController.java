@@ -30,7 +30,7 @@ public class AuthController {
 
     @UserSignUpDoc
     @PostMapping("/sign-up")
-    public ResponseEntity<?> signUp(@RequestBody @Valid UserDTO userDTO,
+    public ResponseEntity<Map<String,String>> signUp(@RequestBody @Valid UserDTO userDTO,
                                     BindingResult bindingResult,
                                     HttpServletRequest request) {
         authValidation.bindingResultErrors(bindingResult);
@@ -43,7 +43,7 @@ public class AuthController {
 
     @UserSignInDoc
     @PostMapping("/sign-in")
-    public ResponseEntity<?> signIn(@RequestBody @Valid UserDTO userDTO,
+    public ResponseEntity<Map<String,String>> signIn(@RequestBody @Valid UserDTO userDTO,
                                     BindingResult bindingResult,
                                     HttpServletRequest request) {
         authValidation.bindingResultErrors(bindingResult);
@@ -56,7 +56,7 @@ public class AuthController {
 
     @UserSignOutDoc
     @PostMapping("/sign-out")
-    public ResponseEntity<HttpStatus> logout(HttpServletRequest request) {
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
         authService.logout(request);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204
     }
